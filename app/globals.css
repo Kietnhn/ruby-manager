@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+/* 
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
@@ -26,8 +26,108 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+} */
+:root{
+  --navbar-height: 4rem;
+}
+@layer components {
+  .flex-center {
+    @apply flex justify-center items-center
+  }
+  .bg-hover{
+    background-color: hsl(var(--nextui-default) / var(--nextui-default-opacity, var(--tw-bg-opacity)));
+  }
+  .color-hover{
+    color: "#ffffff";
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    border-radius: 2px;
+    width: 4px;
+    height: 4px;
+    cursor: pointer;
+    /*background-color: rgba(229, 231, 235, var(--bg-opacity));*/
+
+}
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background-color: rgba(229, 231, 235, var(--bg-opacity));
+    cursor: pointer;
+    /*background: red;*/
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    cursor: pointer;
+    background-color: black;
+    /*outline: 1px solid slategrey;*/
+}
+
+.ProseMirror  ul ,.description  ul {
+    list-style: disc;
+    margin: unset;
+    padding: 0 0 0 12px;
+}
+.ProseMirror  ol,.description ol{
+  list-style: decimal;
+  margin: unset;
+  padding: 0 0 0 12px;
+}
+.ProseMirror  a:hover{
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ProseMirror blockquote{
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 40px;
+    margin-inline-end: 40px;
+    unicode-bidi: isolate;
+    border-left: 3px solid rgba(13, 13, 13, .1);
+    padding-left: 1rem;
+}
+.ProseMirror pre code {
+  background: none;
+  color: inherit;
+  font-size: .8rem;
+  padding: 0;
+}
+.ProseMirror pre {
+  background: #0d0d0d;
+  border-radius: .5rem;
+  color: #fff;
+  font-family: JetBrainsMono, monospace;
+  padding: .75rem 1rem;
+}
+.ProseMirror h1{
+  font-size: 2rem;
+  font-weight: bold;
+}
+.ProseMirror h2{
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+.ProseMirror h3{
+  font-size: 1.17rem;
+  font-weight: bold;
+}
+.ProseMirror h4{
+  font-weight: bold;
+
+}
+.ProseMirror h5{
+  font-size: 0.83rem;
+  font-weight: bold;
+
+}
+.ProseMirror h6{
+  font-size: 0.67;
+  font-weight: bold;
+}
+.bg-video{
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
 }

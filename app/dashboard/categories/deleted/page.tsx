@@ -1,34 +1,34 @@
-import { TableCategoriesSkeleton } from "@/components/skeletons";
-
-import React, { Suspense } from "react";
-import TableDeletedCategories from "@/components/tables/table-categories-deleted";
-import Breadcrumbs from "@/components/breadcrumbs";
+import React from "react";
+import Wrapper from "@/components/wrapper";
+import { getDeletedCategories } from "@/lib/actions/category";
+import { DataTable } from "@/components/data-table";
+import { columns } from "@/app/dashboard/categories/deleted/columns";
 
 export default async function CategoriesPage() {
-    return (
-        <main>
-            <div className="">
-                <Breadcrumbs
-                    wrapper="mb-0"
-                    breadcrumbs={[
-                        {
-                            href: "/dashboard/categories",
-                            label: "Categories",
-                        },
-                        {
-                            href: "/dashboard/categories/deleted",
-                            label: "Deleted Categories",
-                            active: true,
-                        },
-                    ]}
-                />
-            </div>
+    const deletedCategories = await getDeletedCategories();
+    if (!deletedCategories) {
+        return <p>Somethings wrong at get deletedCategories</p>;
+    }
 
-            <div className="mt-4 ">
-                <Suspense fallback={<TableCategoriesSkeleton />}>
-                    <TableDeletedCategories />
-                </Suspense>
-            </div>
-        </main>
+    return (
+        <Wrapper
+            breadcrumbs={[
+                {
+                    href: "/dashboard/categories",
+                    label: "Categories",
+                },
+                {
+                    href: "/dashboard/categories/deleted",
+                    label: "Deleted Categories",
+                },
+            ]}
+            navigateButton={null}
+        >
+            <DataTable
+                columns={columns}
+                data={deletedCategories}
+                setData={null}
+            />
+        </Wrapper>
     );
 }

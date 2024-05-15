@@ -1,27 +1,39 @@
-import { TableCategoriesSkeleton } from "@/components/skeletons";
-import TableMeasurements from "@/components/tables/table-measurements";
-import { PlusIcon } from "@heroicons/react/24/outline";
-import { Button, Input, Textarea } from "@nextui-org/react";
-import Link from "next/link";
-import React, { Suspense } from "react";
+import { DataTable } from "@/components/data-table";
 
-export default function MeasurementPage() {
+import Wrapper from "@/components/wrapper";
+import { getMeasurements } from "@/lib/actions/category";
+import { PlusIcon } from "@heroicons/react/24/outline";
+import { Button } from "@nextui-org/react";
+import Link from "next/link";
+import React from "react";
+import { columns } from "@/app/dashboard/categories/measurements/columns";
+export default async function MeasurementPage() {
+    const measurements = await getMeasurements();
+    if (!measurements) {
+        return <p>Somethings wrong at get measurement</p>;
+    }
+
     return (
-        <main>
-            <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold">Measurement</h3>
+        <Wrapper
+            navigateButton={
                 <Link href="/dashboard/categories/measurements/create">
                     <Button color="primary">
                         <PlusIcon className="w-5 h-5" /> New
                     </Button>
                 </Link>
-            </div>
-
-            <div className="mt-4 ">
-                <Suspense fallback={<TableCategoriesSkeleton />}>
-                    <TableMeasurements />
-                </Suspense>
-            </div>
-        </main>
+            }
+            breadcrumbs={[
+                {
+                    href: "/dashboard/categories",
+                    label: "Category",
+                },
+                {
+                    href: "/dashboard/categories/measurements",
+                    label: "Measurements",
+                },
+            ]}
+        >
+            <DataTable columns={columns} data={measurements} setData={null} />
+        </Wrapper>
     );
 }

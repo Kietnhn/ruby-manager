@@ -161,6 +161,7 @@ export async function addProduct(
             ...variation,
             images: galleryOfColor.images,
             sku: variationSku,
+            deleted: false,
         });
     }
 
@@ -176,6 +177,7 @@ export async function addProduct(
         color: variation.color,
         size: variation.size,
         stock: variation.stock,
+        deleted: false,
     }));
     try {
         await prisma.$transaction(async (tx) => {
@@ -375,48 +377,64 @@ export async function editProduct(
             };
         }
     }
-    const variationsWithSku: Variation[] = [];
+    // const variationsWithSku: Variation[] = [];
+    // for (const variation of variations) {
+    //     const variationSku = await generateVariationUniqueSKU(
+    //         productSku as string,
+    //         variation.size,
+    //         variation.color
+    //     );
+    //     const galleryOfColor = gallery.find((item) => item.color);
+    //     if (!galleryOfColor)
+    //         return {
+    //             errors: {},
+    //             message: "Colors mismatch",
+    //         };
+    //     variationsWithSku.push({
+    //         ...variation,
+    //         images: galleryOfColor.images,
+    //         sku: variationSku,
+    //         deleted: false,
+    //     });
+    // }
+    const galleryInterface: Gallery[] = gallery.map((item) => ({
+        color: item.color,
+        image: item.images.at(0) as string,
+    }));
+    const newVariations: Variation[] = [];
     for (const variation of variations) {
-        const variationSku = await generateVariationUniqueSKU(
-            productSku as string,
-            variation.size,
-            variation.color
-        );
         const galleryOfColor = gallery.find((item) => item.color);
+        let variationSku = variation.sku;
+        if (!variationSku) {
+            variationSku = await generateVariationUniqueSKU(
+                productSku,
+                variation.size,
+                variation.color
+            );
+        }
         if (!galleryOfColor)
             return {
                 errors: {},
                 message: "Colors mismatch",
             };
-        variationsWithSku.push({
-            ...variation,
-            images: galleryOfColor.images,
+        newVariations.push({
+            id: variation.id,
             sku: variationSku,
+            name: variation.name || name,
+            description: variation.description,
+            images: galleryOfColor.images,
+            color: variation.color,
+            size: variation.size,
+            stock: variation.stock,
+            deleted: false,
+            productId: productId,
         });
     }
-    const galleryInterface: Gallery[] = gallery.map((item) => ({
-        color: item.color,
-        image: item.images.at(0) as string,
-    }));
-    const newVariations = variationsWithSku.map((variation) => ({
-        sku: variation.sku,
-        name: variation.name || name,
-        description: variation.description,
-        images: variation.images,
-        color: variation.color,
-        size: variation.size,
-        stock: variation.stock,
-    }));
+    console.table(variations);
+    console.table(newVariations);
     try {
         await prisma.$transaction(async (tx) => {
-            // remove all old variations first
-            const deletedOldVariaition = await tx.variation.deleteMany({
-                where: {
-                    productId: productId,
-                },
-            });
-            console.log("deletedOldVariaition", deletedOldVariaition);
-
+            //update product
             const updatedProduct = await tx.product.update({
                 data: {
                     name,
@@ -439,17 +457,119 @@ export async function editProduct(
                     collectionIds: collectionIds,
                     priceCurrency: "USD",
                     gallery: galleryInterface,
-                    variations: {
-                        createMany: {
-                            data: newVariations,
-                        },
-                    },
+                    // variations: {
+                    //     createMany: {
+                    //         data: newVariations,
+                    //     },
+                    // },
                 },
                 where: {
                     id: productId,
                 },
             });
             console.log("updated product");
+
+            // variations
+            const existingVariations = await tx.variation.findMany({
+                where: { productId: productId },
+            });
+
+            console.log("existingVariations", existingVariations);
+
+            const newVariationsIds = newVariations.map(
+                (variation) => variation.id
+            );
+            // Identify variations to delete
+            const variationsToDelete = existingVariations.filter(
+                (variation) =>
+                    !newVariationsIds.includes(variation.id) &&
+                    variation.deleted === false
+            );
+            console.log("variationsToDelete", variationsToDelete);
+
+            // Identify variations to add or update
+            const variationsToAddOrUpdate = newVariations.map((variation) => {
+                const matchExistedVariation = existingVariations.find(
+                    (v) =>
+                        v.color === variation.color &&
+                        v.size === variation.size &&
+                        v.deleted === true
+                );
+                return {
+                    ...variation,
+                    productId: productId,
+                    sku: matchExistedVariation?.sku || variation.sku,
+                };
+            });
+            console.log("variationsToAddOrUpdate", variationsToAddOrUpdate);
+
+            // Perform deletion
+            if (variationsToDelete.length > 0) {
+                await tx.variation.deleteMany({
+                    where: {
+                        id: {
+                            in: variationsToDelete.map(
+                                (variation) => variation.id
+                            ),
+                        },
+                        orderProducts: {
+                            none: {}, // This checks that there are not related OrderProduct records
+                        },
+                    },
+                });
+                await tx.variation.updateMany({
+                    where: {
+                        id: {
+                            in: variationsToDelete.map(
+                                (variation) => variation.id
+                            ),
+                        },
+                        orderProducts: {
+                            some: {}, // This checks that there are  related OrderProduct records
+                        },
+                    },
+                    data: {
+                        deleted: true,
+                    },
+                });
+            }
+            for (const variation of variationsToAddOrUpdate) {
+                const upserted = await tx.variation.upsert({
+                    where: { sku: variation.sku },
+                    update: {
+                        name: variation.name,
+                        description: variation.description,
+                        images: variation.images,
+                        stock: variation.stock,
+                        size: variation.size,
+                        color: variation.color,
+                        productId: productId,
+                        deleted: false,
+                    },
+                    create: {
+                        sku: variation.sku,
+                        name: variation.name,
+                        description: variation.description,
+                        images: variation.images,
+                        stock: variation.stock,
+                        size: variation.size,
+                        color: variation.color,
+                        productId: productId,
+                        deleted: false,
+                    },
+                });
+                console.log("upsert", JSON.stringify(upserted));
+            }
+            // Perform upsert (add or update) operations
+            // await Promise.all(
+            //     variationsToAddOrUpdate.map((variation) => {
+
+            //         console.log("create or update variation");
+
+            //         // }
+            //     })
+            // );
+            console.table("upserted variants");
 
             if (!collectionIds || collectionIds.length === 0) return;
             // many to many relationships -> so the collection not update yet
@@ -475,7 +595,6 @@ export async function editProduct(
 
             if (changedCollectionIds.length === 0) return;
             console.log("updating collections");
-
             // remove all collections have product id
             for (const collectionId of collectionBeforeUpdateIds) {
                 const matchedCollection = collectionsBeforeUpdate.find(
@@ -513,7 +632,112 @@ export async function editProduct(
     revalidatePath(`/dashboard/products/${productId}/edit`);
     redirect("/dashboard/products");
 }
+async function updateProductWithVariations(
+    productId: string,
+    newVariations: Variation[]
+): Promise<Variation[]> {
+    // Fetch existing variations for the product
+    const existingVariations = await prisma.variation.findMany({
+        where: { productId: productId },
+    });
 
+    // Map existing variations by id for quick lookup
+    // const existingVariationsMap = existingVariations.reduce((map, variation) => {
+    //   map[variation.id] = variation;
+    //   return map;
+    // }, {} as Record<string, Variation>);
+
+    // Map new variations by sku for quick lookup
+    const newVariationsMap = newVariations.reduce((map, variation) => {
+        map[variation.sku] = variation;
+        return map;
+    }, {} as Record<string, Variation>);
+
+    // Identify variations to delete
+    const variationsToDelete = existingVariations.filter(
+        (variation) => !newVariationsMap[variation.sku]
+    );
+
+    // Identify variations to add or update
+    const variationsToAddOrUpdate = newVariations.map((variation) => ({
+        ...variation,
+        productId: productId,
+    }));
+
+    // Perform deletion
+    await prisma.variation.deleteMany({
+        where: {
+            id: { in: variationsToDelete.map((variation) => variation.id) },
+            orderProducts: {
+                none: {}, // This checks that there are  related OrderProduct records
+            },
+        },
+    });
+    await prisma.variation.updateMany({
+        where: {
+            id: { in: variationsToDelete.map((variation) => variation.id) },
+            orderProducts: {
+                some: {}, // This checks that there are  related OrderProduct records
+            },
+        },
+        data: {
+            deleted: true,
+        },
+    });
+
+    // Perform upsert (add or update) operations
+    const upsertedVariations = await Promise.all(
+        variationsToAddOrUpdate.map((variation) =>
+            prisma.variation.upsert({
+                where: { sku: variation.sku },
+                update: {
+                    name: variation.name,
+                    description: variation.description,
+                    images: variation.images,
+                    stock: variation.stock,
+                    size: variation.size,
+                    color: variation.color,
+                    productId: productId,
+                },
+                create: {
+                    sku: variation.sku,
+                    name: variation.name,
+                    description: variation.description,
+                    images: variation.images,
+                    stock: variation.stock,
+                    size: variation.size,
+                    color: variation.color,
+                    productId: productId,
+                },
+            })
+        )
+    );
+
+    return upsertedVariations;
+}
+
+export async function getVariaionsOfProduct(
+    productId: string
+): Promise<Variation[]> {
+    try {
+        // const isInOrderProduct = await prisma.variation.findMany({
+        //     where: {
+        //         productId: productId,
+        //         orderProducts: {
+        //             some: {}, // This checks if there is at least one related OrderProduct
+        //         },
+        //     },
+        // });
+        const variations = await prisma.variation.findMany({
+            where: {
+                productId: productId,
+            },
+        });
+        return variations;
+    } catch (error) {
+        throw new Error("Error at getting variations of product: " + error);
+    }
+}
 export async function addProductsWithXlsx(products: Product[]) {
     if (!products || products.length === 0) {
         return {
@@ -542,7 +766,6 @@ export async function addProductsWithXlsx(products: Product[]) {
                 priceCurrency: "USD",
                 weight: product.weight,
                 gender: product.gender,
-
                 gallery: product.gallery,
                 description: product.description,
             })),
@@ -579,7 +802,11 @@ export async function getProducts(): Promise<FullProduct[]> {
         const products = await prisma.product.findMany({
             include: {
                 category: true,
-                variations: true,
+                variations: {
+                    where: {
+                        deleted: false,
+                    },
+                },
                 collections: true,
                 properties: true,
                 brand: true,
@@ -738,7 +965,11 @@ export async function findProducts(value: string) {
         const products = await prisma.product.findMany({
             include: {
                 category: true,
-                variations: true,
+                variations: {
+                    where: {
+                        deleted: false,
+                    },
+                },
             },
             where: {
                 AND: [
@@ -844,7 +1075,11 @@ export async function getProductById(id: string): Promise<DeepProduct> {
                 properties: true,
                 brand: true,
                 collections: true,
-                variations: true,
+                variations: {
+                    where: {
+                        deleted: false,
+                    },
+                },
             },
         });
         return product as DeepProduct;

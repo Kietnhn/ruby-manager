@@ -3,7 +3,6 @@ import {
     HomeIcon,
     DocumentDuplicateIcon,
     ArchiveBoxIcon,
-    ListBulletIcon,
     Cog6ToothIcon,
     UsersIcon,
     HashtagIcon,
@@ -15,6 +14,7 @@ import {
     PuzzlePieceIcon,
     TicketIcon,
     AdjustmentsVerticalIcon,
+    Bars3BottomLeftIcon,
 } from "@heroicons/react/24/outline";
 import { LinkType } from "./definitions";
 import { ContactIcon } from "lucide-react";
@@ -138,7 +138,7 @@ export const ASIDE_MENU_LINKS: LinkType[] = [
             {
                 name: "Categories",
                 href: "/dashboard/categories",
-                icon: ListBulletIcon,
+                icon: Bars3BottomLeftIcon,
                 sublinks: [],
             },
             {
@@ -223,7 +223,7 @@ export const FLAT_ASIDE_MENU_LINKS: LinkType[] = [
     {
         name: "Categories",
         href: "/dashboard/categories",
-        icon: ListBulletIcon,
+        icon: Bars3BottomLeftIcon,
         sublinks: [],
     },
     {

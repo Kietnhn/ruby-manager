@@ -271,13 +271,14 @@ model Variation {
   productId     String         @db.ObjectId
   orderProducts OrderProduct[]
   carts         Cart[]
+  deleted       Boolean?       @default(false)
 }
 
 model OrderProduct {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
   order         Order?    @relation(fields: [orderId], references: [id])
   orderId       String?   @db.ObjectId
-  variation     Variation @relation(fields: [variationId], references: [id])
+  variation     Variation @relation(fields: [variationId], references: [id], onDelete: Cascade)
   variationId   String    @db.ObjectId
   product       Product   @relation(fields: [productId], references: [id])
   productId     String    @db.ObjectId

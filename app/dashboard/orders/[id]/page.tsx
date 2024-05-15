@@ -1,4 +1,4 @@
-import { getOrderById } from "@/lib/actions";
+import { getOrderById } from "@/lib/actions/order";
 import React from "react";
 import NotFound from "@/components/not-found";
 import Breadcrumbs from "@/components/breadcrumbs";
@@ -104,10 +104,11 @@ export default async function OrderDetailPage({
                                     <div className="flex gap-2 items-center">
                                         <Avatar
                                             src={
-                                                orderDetail.user
-                                                    .avatar as string
+                                                orderDetail.user.image as string
                                             }
-                                            alt={orderDetail.user.email}
+                                            alt={
+                                                orderDetail.user.email as string
+                                            }
                                         />
                                         <p className="group-hover:text-primary group-hover:underline">
                                             {orderDetail.user.firstName}{" "}

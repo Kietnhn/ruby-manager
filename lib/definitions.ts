@@ -36,7 +36,7 @@ export interface ITopCustomer extends User {
     orders: Order[];
 }
 export interface ICategory extends Category {
-    parent: Category | null;
+    parent: ICategory | null;
     measurement?: Measurement;
 }
 export interface PageContainParent extends Page {

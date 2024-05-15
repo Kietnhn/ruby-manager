@@ -369,7 +369,12 @@ const CreateForm = ({
                                         <CurrencyDollarIcon className="pointer-events-none h-4 w-4  text-gray-500 peer-focus:text-gray-900" />
                                     }
                                     readOnly
-                                    value={salePrice.toString()}
+                                    isDisabled={price === salePrice}
+                                    value={
+                                        price === salePrice
+                                            ? undefined
+                                            : salePrice.toString()
+                                    }
                                     endContent={
                                         <Button
                                             isDisabled

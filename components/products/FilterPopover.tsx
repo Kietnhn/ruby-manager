@@ -25,7 +25,7 @@ export function FilterPopover({
     setColumnFilters: Dispatch<SetStateAction<TypeFilter[]>>;
 }) {
     // const [selectedKeys, setSelectedKeys] = useState<string[]>([""]);
-    console.log({ columnFilters });
+    // console.log({ columnFilters });
 
     const filterCategories =
         columnFilters.find((f) => f.id === "category")?.value || [];
@@ -33,7 +33,7 @@ export function FilterPopover({
         columnFilters.find((f) => f.id === "brand")?.value || [];
     const filterCollections =
         columnFilters.find((f) => f.id === "collections")?.value || [];
-    console.log({ filterCollections });
+    // console.log({ filterCollections });
 
     const filterGender =
         columnFilters.find((f) => f.id === "gender")?.value || [];

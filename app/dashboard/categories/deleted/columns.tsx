@@ -3,17 +3,17 @@
 import { getPublicIdFromUrl, renderId } from "@/lib/utils";
 import { Avatar, Button, Tooltip } from "@nextui-org/react";
 import { ColumnDef } from "@tanstack/react-table";
-import { Category, UserCustomer } from "@/lib/definitions";
+import { ICategory, UserCustomer } from "@/lib/definitions";
 import { Address, Measurement, Order, UserKind } from "@prisma/client";
 import clsx from "clsx";
 import Link from "next/link";
 import { EyeIcon, PencilIcon } from "@heroicons/react/24/outline";
-import { DeepDeleteCategory, RestoreButton } from "@/components/buttons";
+import { DeepDeleteButton, RestoreButton } from "@/components/buttons";
 import { deepDeleteCategory, restoreCategory } from "@/lib/actions/category";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
-export const columns: ColumnDef<Category>[] = [
+export const columns: ColumnDef<ICategory>[] = [
     {
         accessorKey: "code",
         header: "Code",
@@ -28,7 +28,8 @@ export const columns: ColumnDef<Category>[] = [
         accessorKey: "parent",
         header: "Parent",
         cell: (props) => {
-            const parent = props.getValue() as Category;
+            const parent = props.getValue() as ICategory;
+
             return <p>{parent?.name ? parent.name : "null"}</p>;
         },
     },
@@ -38,16 +39,11 @@ export const columns: ColumnDef<Category>[] = [
         cell: (props) => {
             const measurement = props.getValue() as Measurement;
 
-            return <p className="capitalize">{measurement.name}</p>;
-        },
-    },
-    {
-        accessorKey: "size",
-        header: "Sizes",
-        cell: (props) => {
-            const measurement = props.row.original.measurement as Measurement;
-
-            return <div>{measurement.sizes.join("|")}</div>;
+            return (
+                <Tooltip content={measurement.sizes.join("|")}>
+                    <p className="capitalize">{measurement.name}</p>
+                </Tooltip>
+            );
         },
     },
 
@@ -62,7 +58,7 @@ export const columns: ColumnDef<Category>[] = [
             return (
                 <div className="flex justify-center gap-2">
                     <RestoreButton action={restoreCategoryWithId} />
-                    <DeepDeleteCategory action={deepDeleteCategoryWithId} />
+                    <DeepDeleteButton action={deepDeleteCategoryWithId} />
                 </div>
             );
         },

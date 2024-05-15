@@ -6,7 +6,7 @@ import {
 } from "@/lib/definitions";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button, CheckboxGroup, Chip, Input, Tooltip } from "@nextui-org/react";
-import { Measurement } from "@prisma/client";
+import { Measurement, Variation } from "@prisma/client";
 import React, {
     Dispatch,
     SetStateAction,
@@ -28,7 +28,7 @@ import colors from "color-name";
 import ReactSelect, { MultiValue } from "react-select";
 import { useAppDispatch, useAppSelector } from "@/lib/store";
 import { addGallery, setGallery } from "@/features/product-slice";
-
+import _ from "lodash";
 const customStyles = {
     control: (provided: any, state: any) => ({
         ...provided,
@@ -119,9 +119,11 @@ const Variants = ({
     measurement,
     productName,
     categoryName,
+    initialValue,
 }: {
-    productName: string;
-    categoryName: string;
+    initialValue?: Variation[];
+    productName?: string;
+    categoryName?: string;
     variations: VariationNoImages[];
     measurement?: Measurement | null;
     setVariations: Dispatch<SetStateAction<VariationNoImages[]>>;
@@ -140,7 +142,6 @@ const Variants = ({
     const [selectedValues, setSelectedValues] = useState<ISelectColorsData[]>(
         []
     );
-
     const [selectedSizes, setSelectedSizes] = useState<string[]>(() => {
         const variationSizes = getUniqueSizes(variations);
         console.log({ variationSizes });
@@ -253,9 +254,10 @@ const Variants = ({
     useEffect(() => {
         const uniqueColors = getUniqueColors(variations);
         const uniqueSizes = getUniqueSizes(variations);
+
         //    if doesn't have any different (color or size) between variations and states
         if (
-            !isDifferenceArray(uniqueColors, selectedColors) ||
+            !isDifferenceArray(uniqueColors, selectedColors) &&
             !isDifferenceArray(uniqueSizes, selectedSizes)
         ) {
             console.log("doesn't have any different ");
@@ -263,25 +265,48 @@ const Variants = ({
         }
         console.log(" have different ");
 
-        console.log({ selectedColors, selectedSizes });
         const combinations = generateCombinations(
             selectedColors,
             selectedSizes
         );
 
-        const newData: VariationNoImages[] = combinations.map((item) => ({
-            name: productName,
-            sku: "",
-            color: item.color as string,
-            description: "",
-            id: "",
-            stock: 0,
-            size: item.size as string,
-            productId: "",
-        }));
-        setVariations(newData);
+        if (initialValue) {
+            const newData: VariationNoImages[] = combinations.map((item) => {
+                const matchVariation = initialValue.find(
+                    (v) => v.color === item.color && v.size === item.size
+                );
+                if (!matchVariation) {
+                    console.log("invalid variation");
+                }
+                return {
+                    name: productName || "",
+                    sku: matchVariation?.sku || "",
+                    color: item.color as string,
+                    description: "",
+                    id: matchVariation?.id || "",
+                    stock: matchVariation?.stock || 0,
+                    size: item.size as string,
+                    productId: matchVariation?.productId || "",
+                };
+            });
+            setVariations(newData);
 
-        console.log({ newData });
+            console.log({ newData });
+        } else {
+            const newData: VariationNoImages[] = combinations.map((item) => ({
+                name: productName || "",
+                sku: "",
+                color: item.color as string,
+                description: "",
+                id: "",
+                stock: 0,
+                size: item.size as string,
+                productId: "",
+            }));
+            setVariations(newData);
+
+            console.log({ newData });
+        }
     }, [selectedColors, selectedSizes]);
     return (
         <>

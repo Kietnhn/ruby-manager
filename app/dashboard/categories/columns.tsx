@@ -1,11 +1,12 @@
 "use client";
 
-import { Button } from "@nextui-org/react";
+import { Button, Tooltip } from "@nextui-org/react";
 import { ColumnDef } from "@tanstack/react-table";
 import { ICategory } from "@/lib/definitions";
 import { Measurement } from "@prisma/client";
 import Link from "next/link";
 import { PencilIcon } from "@heroicons/react/24/outline";
+import { EditLinkButton } from "@/components/buttons";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -32,25 +33,25 @@ export const columns: ColumnDef<ICategory>[] = [
         accessorKey: "measurement",
         header: "Measurement",
         cell: (props) => {
-            const measurement = props.getValue() as Measurement | null;
+            const measurement = props.getValue() as Measurement;
 
             return (
-                <p className="capitalize">
-                    {measurement?.name ? measurement.name : "null"}
-                </p>
+                <Tooltip content={measurement?.sizes?.join("|")}>
+                    <p className="capitalize">{measurement?.name}</p>
+                </Tooltip>
             );
         },
     },
-    {
-        accessorKey: "size",
-        header: "Sizes",
-        cell: (props) => {
-            const measurement = props.row.original
-                .measurement as Measurement | null;
+    // {
+    //     accessorKey: "size",
+    //     header: "Sizes",
+    //     cell: (props) => {
+    //         const measurement = props.row.original
+    //             .measurement as Measurement | null;
 
-            return <div>{measurement?.sizes.join("|")}</div>;
-        },
-    },
+    //         return <div>{measurement?.sizes.join("|")}</div>;
+    //     },
+    // },
 
     {
         accessorKey: "createdAt",
@@ -71,13 +72,14 @@ export const columns: ColumnDef<ICategory>[] = [
         cell: (props) => {
             const id = props.row.original.id;
             return (
-                <div className="flex justify-center">
-                    <Link href={`/dashboard/categories/${id}/edit`}>
-                        <Button isIconOnly color="warning">
-                            <PencilIcon className="w-5 h-5" />
-                        </Button>
-                    </Link>
-                </div>
+                <EditLinkButton href={`/dashboard/categories/${id}/edit`} />
+                // <div className="flex justify-center">
+                //     <Link href={`/dashboard/categories/${id}/edit`}>
+                //         <Button isIconOnly color="warning">
+                //             <PencilIcon className="w-5 h-5" />
+                //         </Button>
+                //     </Link>
+                // </div>
             );
         },
     },

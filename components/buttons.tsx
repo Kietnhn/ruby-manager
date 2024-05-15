@@ -133,11 +133,7 @@ export function ConfirmDelete({
         </Popover>
     );
 }
-export function DeepDeleteCategory({
-    action,
-}: {
-    action: () => Promise<void>;
-}) {
+export function DeepDeleteButton({ action }: { action: () => Promise<void> }) {
     return (
         <ConfirmDelete
             name="category"
@@ -169,21 +165,25 @@ export function EditCategory({ action }: { action: () => Promise<void> }) {
     );
 }
 
-export function EditLinkButton({
-    href,
-    content,
-}: {
+interface EditLinkButtonProps extends ButtonProps {
     href: string;
-    content: string;
-}) {
+    content?: string;
+}
+export function EditLinkButton(props: EditLinkButtonProps) {
+    const { content = "Edit", href, ...rest } = props;
     return (
-        <Link href={href}>
-            <Tooltip content={content} showArrow>
-                <Button isIconOnly color="warning" variant="bordered">
-                    <PencilIcon className="h-5 w-5" />
-                </Button>
-            </Tooltip>
-        </Link>
+        <Tooltip content={content} showArrow>
+            <Button
+                isIconOnly
+                color="warning"
+                variant="bordered"
+                as={Link}
+                href={href}
+                {...rest}
+            >
+                <PencilIcon className="h-5 w-5" />
+            </Button>
+        </Tooltip>
     );
 }
 interface IViewLinkButtonProps extends ButtonProps {

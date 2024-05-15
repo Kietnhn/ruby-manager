@@ -24,6 +24,7 @@ import {
     CardHeader,
     Divider,
     Input,
+    Link,
     Radio,
     RadioGroup,
     Select,
@@ -87,20 +88,20 @@ const EditForm = ({
     const groupedCategories = useMemo(() => groupCategories(categories), []);
 
     // states
+    const initVariations = useMemo(() => product.variations, []);
     const { gallery, isShowWarning } = useAppSelector((store) => store.product);
     const [tmpMeasurement, setTmpMeasurement] = useState<Measurement | null>(
         product.category?.measurement as Measurement
     );
-    const [productName, setProductName] = useState<string>("");
+    const [productName, setProductName] = useState<string>(product.name);
     const [details, setDetails] = useState<string>(product.details || "");
     const [summary, setSummary] = useState<string>(product.summary || "");
     const [categoryName, setCategoryName] = useState<string>(
         product.category?.name || ""
     );
 
-    const [variations, setVariations] = useState<VariationNoImages[]>(
-        product.variations
-    );
+    const [variations, setVariations] =
+        useState<VariationNoImages[]>(initVariations);
     const [price, setPrice] = useState<number>(product.price);
     const [salePrice, setSalePrice] = useState<number>(
         product.salePrice || product.price
@@ -132,7 +133,11 @@ const EditForm = ({
         const selectedDiscount = discounts.find(
             (discount) => discount.id === value
         );
-        if (!selectedDiscount || selectedDiscount.type === "SHIPPING") return;
+        if (!selectedDiscount || selectedDiscount.type === "SHIPPING") {
+            setSalePrice(price);
+
+            return;
+        }
         if (selectedDiscount.type === "PERCENTAGE") {
             const newSalesPrice =
                 price - (price * selectedDiscount.value) / 100;
@@ -427,7 +432,12 @@ const EditForm = ({
                                             <CurrencyDollarIcon className="pointer-events-none h-4 w-4  text-gray-500 peer-focus:text-gray-900" />
                                         }
                                         readOnly
-                                        value={salePrice.toString()}
+                                        isDisabled={price === salePrice}
+                                        value={
+                                            price === salePrice
+                                                ? undefined
+                                                : salePrice.toString()
+                                        }
                                         endContent={
                                             <Button
                                                 isDisabled
@@ -553,6 +563,7 @@ const EditForm = ({
                                 </div>
                             </CardWrapper>
                             {/* Variation Attributes */}
+
                             <CardWrapper
                                 className=" w-full !overflow-visible"
                                 classNames={{
@@ -561,6 +572,7 @@ const EditForm = ({
                                 heading="Variation Attributes"
                             >
                                 <Variants
+                                    initialValue={initVariations}
                                     productName={productName}
                                     categoryName={categoryName}
                                     variations={variations}
@@ -568,6 +580,7 @@ const EditForm = ({
                                     measurement={tmpMeasurement}
                                 />
                             </CardWrapper>
+
                             {/* isAvailable */}
                             <CardWrapper classNames={{ body: "p-0" }}>
                                 <CustomSwitch
@@ -619,6 +632,12 @@ const EditForm = ({
                         </CardWrapper>
                     </div>
                 )}
+                {/* <div>
+                    <p>Edit Variations ?
+                    <Link href={`/dashboard/products/${product.id}/variations/edit`}>Click here</Link>
+                    To edit variations of this product
+                    </p>
+                </div> */}
             </form>
             <NotSetCategoryModal isOpen={isOpen} onClose={onClose} />
         </main>

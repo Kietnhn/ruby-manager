@@ -310,12 +310,9 @@ export async function getMeasurements() {
             },
         });
 
-        return { measurements: measurements, message: "Image retrieved" };
+        return measurements;
     } catch (error) {
-        return {
-            measurements: null,
-            message: "Something wrong in get categories" + error,
-        };
+        throw new Error("Error getting measurement" + error);
     }
 }
 export async function getMeasurementById(id: string) {

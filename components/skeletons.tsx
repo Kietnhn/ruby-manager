@@ -2,6 +2,39 @@
 import { Skeleton } from "@nextui-org/react";
 const shimmer =
     "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent";
+export const SearchProductSkeleton = () => {
+    return (
+        <div className="grid grid-cols-3  gap-4">
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+            <Skeleton className="rounded-medium">
+                <div className="h-[400px]  rounded-medium bg-default-300"></div>
+            </Skeleton>
+        </div>
+    );
+};
 
 export const CardItemSkeleton = () => {
     return (

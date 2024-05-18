@@ -14,8 +14,8 @@ import {
     Card,
     Image,
 } from "@nextui-org/react";
-import { findProducts } from "@/lib/actions/product";
-import { FullOrderProduct, FullProduct } from "@/lib/definitions";
+import { findProducts, searchProducts } from "@/lib/actions/product";
+import { FullOrderProduct, FullProduct, IFindProduct } from "@/lib/definitions";
 import { useDebounce, useDebouncedCallback } from "use-debounce";
 const AutocomleteProducts = ({
     data,
@@ -24,11 +24,11 @@ const AutocomleteProducts = ({
     data: FullOrderProduct[];
     setData: React.Dispatch<React.SetStateAction<FullOrderProduct[]>>;
 }) => {
-    const [searchData, setSearchData] = useState<FullProduct[]>([]);
+    const [searchData, setSearchData] = useState<IFindProduct[]>([]);
     // const [inputValue, setInputValue] = useState<string>("");
     // const [debouncedInputValue] = useDebounce(inputValue, 300);
     const handleFindProducts = async (value: string) => {
-        const products = await findProducts(value);
+        const products = await searchProducts(value);
         console.log({ products });
 
         setSearchData(products);
@@ -59,10 +59,18 @@ const AutocomleteProducts = ({
                 variation.stock > 0
         );
         if (!availabelVariation) return;
-
-        setData([
-            ...data,
-            {
+        const isExisted = data.find(
+            (item) => item.variationId === selectedVariation.id
+        );
+        if (isExisted) {
+            const newData = data.map((item) =>
+                item.variationId === selectedVariation.id
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            );
+            setData(newData);
+        } else {
+            const newDataItem = {
                 id: `data-order-product-${data.length + 1}`,
                 priceCurrency: "USD",
                 quantity: 1,
@@ -75,10 +83,12 @@ const AutocomleteProducts = ({
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 productId: selectedProduct.id,
-            },
-        ]);
+            };
+            setData([...data, newDataItem]);
+        }
+
         // reset
-        setSearchData([]);
+        // setSearchData([]);
         // setInputValue("");
     };
 
@@ -98,7 +108,7 @@ const AutocomleteProducts = ({
                 onInputChange={handleChangeInput}
                 className="rounded-tr-none rounded-br-none"
                 label="Search product"
-                labelPlacement="outside-left"
+                // labelPlacement="outside-left"
                 placeholder="Searching ..."
                 inputProps={{
                     classNames: { mainWrapper: "flex-1" },
@@ -122,6 +132,7 @@ const AutocomleteProducts = ({
                             <AutocompleteItem
                                 key={variation.id}
                                 textValue={product.name}
+                                className="outline-none"
                             >
                                 <div className="flex gap-2 items-center">
                                     <Card shadow="none">

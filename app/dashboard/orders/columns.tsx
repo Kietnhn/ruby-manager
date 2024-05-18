@@ -1,6 +1,6 @@
 "use client";
 
-import { renderId } from "@/lib/utils";
+import { renderId, renderPrice } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { FullEmployee, OrderEmployeeCustomer } from "@/lib/definitions";
 import { Button, Chip, Tooltip } from "@nextui-org/react";
@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import Link from "next/link";
+import { ViewLinkButton } from "@/components/buttons";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -24,7 +25,9 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
         enableSorting: false,
         cell: (props) => (
             <Tooltip content={props.getValue() as string}>
-                <p> {renderId(props.getValue() as string)}</p>
+                <p className="hover:cursor-default">
+                    {renderId(props.getValue() as string)}
+                </p>
             </Tooltip>
         ),
     },
@@ -34,7 +37,13 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
         header: "Customer",
         cell: (props) => {
             const customer = props.getValue() as User;
-            return <p>{customer.email}</p>;
+            return (
+                <Tooltip content={customer.email}>
+                    <p className="max-w-36 line-clamp-1 overflow-hidden break-all  hover:cursor-default">
+                        {customer.email}
+                    </p>
+                </Tooltip>
+            );
         },
     },
     {
@@ -43,7 +52,13 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
         cell: (props) => {
             const employee = props.getValue() as FullEmployee;
 
-            return <p>{employee?.user?.email}</p>;
+            return (
+                <Tooltip content={employee?.user?.email}>
+                    <p className="max-w-36 line-clamp-1 overflow-hidden break-all hover:cursor-default">
+                        {employee?.user?.email}
+                    </p>
+                </Tooltip>
+            );
         },
     },
     {
@@ -117,9 +132,9 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
         accessorKey: "totalPrice",
         header: "Total Price",
         cell: (props) => {
-            return (
-                <p className="text-gray-500  ">${props.getValue() as string}</p>
-            );
+            const totalPrice = props.getValue() as number;
+            const priceCurrency = props.row.original.priceCurrency;
+            return <strong>{renderPrice(totalPrice, priceCurrency)}</strong>;
         },
     },
 
@@ -135,18 +150,18 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
             );
         },
     },
-    {
-        accessorKey: "processedAt",
-        header: "Processed at",
-        cell: (props) => {
-            const processedAt = props.getValue() as Date;
-            return (
-                <p className="" suppressHydrationWarning>
-                    {processedAt?.toLocaleDateString() || "null"}
-                </p>
-            );
-        },
-    },
+    // {
+    //     accessorKey: "processedAt",
+    //     header: "Processed at",
+    //     cell: (props) => {
+    //         const processedAt = props.getValue() as Date;
+    //         return (
+    //             <p className="" suppressHydrationWarning>
+    //                 {processedAt?.toLocaleDateString() || "null"}
+    //             </p>
+    //         );
+    //     },
+    // },
     {
         accessorKey: "completedAt",
         header: "Completed at",
@@ -154,7 +169,7 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
             const completedAt = props.getValue() as Date;
             return (
                 <p className="" suppressHydrationWarning>
-                    {completedAt?.toLocaleDateString() || "null"}
+                    {completedAt?.toLocaleDateString() || "Not completed yet"}
                 </p>
             );
         },
@@ -166,13 +181,10 @@ export const columns: ColumnDef<OrderEmployeeCustomer>[] = [
         cell(props) {
             const orderId = props.row.original.id;
             return (
-                <Tooltip content="View detail" showArrow>
-                    <Link href={`/dashboard/orders/${orderId}`}>
-                        <Button isIconOnly color="primary" variant="light">
-                            <EyeIcon className="w-5 h-5" />
-                        </Button>
-                    </Link>
-                </Tooltip>
+                <ViewLinkButton
+                    content="View detail"
+                    href={`/dashboard/orders/${orderId}`}
+                />
             );
         },
     },

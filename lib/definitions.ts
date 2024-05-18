@@ -104,6 +104,10 @@ export interface FullOrderProduct extends OrderProduct {
 export interface ProductVariation extends Product {
     variations: Variation[];
 }
+export interface IFindProduct extends Product {
+    variations: Variation[];
+    category: Category | null;
+}
 export interface DeepProduct extends Product {
     variations: Variation[];
     category: ICategory | null;
@@ -268,6 +272,14 @@ export type Country = {
     };
     flag: string;
 };
+export interface ICart {
+    product: IFindProduct;
+    productId: string;
+    userId: string | null;
+    variationId: string;
+    variation: Variation;
+    quantity: number;
+}
 export interface UserCustomer extends User {
     address: Address;
     orders: Order[];

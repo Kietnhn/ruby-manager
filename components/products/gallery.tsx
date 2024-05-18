@@ -11,6 +11,7 @@ import { Image as TypeImage, Variation } from "@prisma/client";
 import { findVariation, generateToImagesFromUrls } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/lib/store";
 import { setGallery } from "@/features/product-slice";
+import { TGallery } from "@/lib/definitions";
 const Gallery = ({
     // setVariations,
     // variations,
@@ -26,22 +27,23 @@ const Gallery = ({
     const dispatch = useAppDispatch();
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [images, setImages] = useState<TypeImage[]>(() => {
+        // const currentItem = gallery.find(
+        //     (item) => item.color === variationColor
+        // );
+        // if (!currentItem) return [];
+        // return generateToImagesFromUrls(currentItem.images);
+        return [];
+    });
+    useEffect(() => {
         const currentItem = gallery.find(
             (item) => item.color === variationColor
         );
-        if (!currentItem) return [];
-        return generateToImagesFromUrls(currentItem.images);
-    });
+        if (!currentItem) return setImages([]);
+        setImages(generateToImagesFromUrls(currentItem.images));
+    }, [variationColor]);
     useEffect(() => {
         if (images.length === 0) return;
-        // const newVariations = variations.map((item) =>
-        //     item.color === variation.color
-        //         ? { ...item, images: images.map((img) => img.url) }
-        //         : item
-        // );
-        // console.log("gallery same", newVariations, { variations });
 
-        // setVariations(newVariations);
         const newGallery = gallery.map((item) =>
             item.color === variationColor
                 ? { ...item, images: images.map((img) => img.url) }

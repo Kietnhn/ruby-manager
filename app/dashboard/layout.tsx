@@ -14,7 +14,7 @@ export default async function Layout({
             <SideNav user={user} />
             <ClientLayout>
                 <MainNav user={user} />
-                <div className="flex-grow p-6  md:p-12 relative">
+                <div className="flex-grow p-6  md:p-12 md:pt-0 relative">
                     {children}
                 </div>
             </ClientLayout>

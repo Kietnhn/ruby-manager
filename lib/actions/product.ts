@@ -5,6 +5,7 @@ import { productSchema, propertyShema } from "../schema";
 import {
     DeepProduct,
     FullProduct,
+    IFindProduct,
     State,
     TGallery,
     VariationNoImages,
@@ -151,7 +152,9 @@ export async function addProduct(
             variation.size,
             variation.color
         );
-        const galleryOfColor = gallery.find((item) => item.color);
+        const galleryOfColor = gallery.find(
+            (item) => item.color === variation.color
+        );
         if (!galleryOfColor)
             return {
                 errors: {},
@@ -403,7 +406,9 @@ export async function editProduct(
     }));
     const newVariations: Variation[] = [];
     for (const variation of variations) {
-        const galleryOfColor = gallery.find((item) => item.color);
+        const galleryOfColor = gallery.find(
+            (item) => item.color === variation.color
+        );
         let variationSku = variation.sku;
         if (!variationSku) {
             variationSku = await generateVariationUniqueSKU(
@@ -847,9 +852,9 @@ export async function getUnAvailableProducts(): Promise<FullProduct[]> {
 }
 export async function updateFieldProduct() {
     try {
-        await prisma.product.updateMany({
+        await prisma.variation.updateMany({
             data: {
-                propertyIds: [],
+                deleted: false,
             },
         });
     } catch (error) {
@@ -959,17 +964,17 @@ export async function getAvailableProducts() {
         throw new Error("Error at get availableProdcuts" + error);
     }
 }
-export async function findProducts(value: string) {
+export async function findProducts(
+    value: string,
+    take: number = 20,
+    skip: number = 0
+): Promise<IFindProduct[]> {
+    if (!value) return [];
     try {
-        if (!value) return [];
         const products = await prisma.product.findMany({
             include: {
                 category: true,
-                variations: {
-                    where: {
-                        deleted: false,
-                    },
-                },
+                variations: true,
             },
             where: {
                 AND: [
@@ -1051,10 +1056,68 @@ export async function findProducts(value: string) {
                 isAvailable: true,
                 deleted: false,
             },
+            take: take,
+            skip: skip,
             orderBy: { createdAt: "desc" },
         });
 
-        return products as FullProduct[];
+        return products;
+    } catch (error) {
+        throw new Error("Error at find prodcuts" + error);
+    }
+}
+export async function searchProducts(
+    value: string,
+    take: number = 20,
+    skip: number = 0
+): Promise<IFindProduct[]> {
+    if (!value) return [];
+    try {
+        const products = await prisma.product.findMany({
+            include: {
+                category: true,
+                variations: true,
+            },
+            where: {
+                OR: [
+                    {
+                        name: {
+                            contains: value,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        sku: {
+                            contains: value,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        description: {
+                            contains: value,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
+
+                variations: {
+                    some: {
+                        stock: {
+                            gt: 0,
+                        },
+                        deleted: false,
+                    },
+                },
+
+                isAvailable: true,
+                deleted: false,
+            },
+            take: take,
+            skip: skip,
+            orderBy: { createdAt: "desc" },
+        });
+
+        return products;
     } catch (error) {
         throw new Error("Error at find prodcuts" + error);
     }

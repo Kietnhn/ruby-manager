@@ -7,36 +7,25 @@ import { Button } from "@nextui-org/react";
 import Link from "next/link";
 import { Suspense } from "react";
 import ProductTabsBar from "@/components/products/product-tabsbar";
+import Wrapper from "@/components/wrapper";
 
 export default async function ProductsPage() {
     return (
-        <main className="">
-            <div className="flex items-center justify-between ">
-                <div className="">
-                    <Breadcrumbs
-                        wrapper="mb-0"
-                        breadcrumbs={[
-                            {
-                                href: "/dashboard/products",
-                                label: "Products",
-                                active: true,
-                            },
-                        ]}
-                    />
-                </div>
+        <Wrapper
+            breadcrumbs={[{ href: "/dashboard/products", label: "Products" }]}
+            navigateButton={
                 <Link href="/dashboard/products/create">
                     <Button color="primary">
                         <PlusIcon className="w-5 h-5" />
                         Add product
                     </Button>
                 </Link>
-            </div>
-            <div className="mt-8 ">
-                <ProductTabsBar />
-                <Suspense fallback={<TableCategoriesSkeleton />}>
-                    <TableProducts />
-                </Suspense>
-            </div>
-        </main>
+            }
+        >
+            <ProductTabsBar />
+            <Suspense fallback={<TableCategoriesSkeleton />}>
+                <TableProducts />
+            </Suspense>
+        </Wrapper>
     );
 }

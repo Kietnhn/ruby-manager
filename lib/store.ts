@@ -4,6 +4,7 @@ import { persistReducer } from "redux-persist";
 import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 import settingReducer from "@/features/setting-slice";
 import productReducer from "@/features/product-slice";
+import orderReducer from "@/features/order-slice";
 import notificationReducer from "@/features/notification-slice";
 const createNoopStorage = () => {
     return {
@@ -39,6 +40,7 @@ const rootReducer = combineReducers({
     setting: settingReducer,
     product: productReducer,
     notification: notificationReducer,
+    order: orderReducer,
 });
 
 export const store = configureStore({

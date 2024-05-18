@@ -36,6 +36,9 @@ body {
   --navbar-height: 4rem;
 }
 @layer components {
+  .line-break-anywhere{
+    line-break: anywhere;
+  }
   .flex-center {
     @apply flex justify-center items-center
   }

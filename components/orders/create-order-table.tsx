@@ -68,8 +68,6 @@ const CreateOrderTable = ({
 
     return (
         <div>
-            <AutocomleteProducts data={data} setData={setData} />
-
             <div className="border-medium rounded-medium mb-4">
                 <Table>
                     <TableHeader>

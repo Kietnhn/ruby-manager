@@ -39,7 +39,6 @@ const GallerySortable = ({
                                 isPressable
                                 onPress={onOpen}
                             >
-                                {/* <div className="flex flex-col relative"> */}
                                 <div className="relative">
                                     <Image
                                         alt={item.public_id}
@@ -54,31 +53,6 @@ const GallerySortable = ({
                                             </p>
                                         </div>
                                     )}
-                                    {/* </div> */}
-                                    {/* <div className="flex relative border rounded-bl-2xl rounded-br-2xl overflow-hidden">
-                                    <Button
-                                        isIconOnly
-                                        onClick={onOpen}
-                                        variant="light"
-                                        className="w-1/2 "
-                                        radius="none"
-                                    >
-                                        <EyeIcon className="w-5 h-5" />
-                                    </Button>
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[0.5px] h-full bg-[#e5e7eb]"></div>
-                                    <Button
-                                        isIconOnly
-                                        variant="light"
-                                        className="w-1/2 "
-                                        color="danger"
-                                        radius="none"
-                                    >
-                                        <TrashIcon
-                                            className="w-5 h-5"
-                                            color=""
-                                        />
-                                    </Button>
-                                </div> */}
                                 </div>
                             </Card>
                         );

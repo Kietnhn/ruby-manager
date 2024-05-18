@@ -365,15 +365,15 @@ const CreateForm = ({
                                     type="number"
                                     min={0}
                                     step="any"
-                                    startContent={
-                                        <CurrencyDollarIcon className="pointer-events-none h-4 w-4  text-gray-500 peer-focus:text-gray-900" />
-                                    }
                                     readOnly
                                     isDisabled={price === salePrice}
                                     value={
                                         price === salePrice
                                             ? undefined
                                             : salePrice.toString()
+                                    }
+                                    startContent={
+                                        <CurrencyDollarIcon className="pointer-events-none h-4 w-4  text-gray-500 peer-focus:text-gray-900" />
                                     }
                                     endContent={
                                         <Button

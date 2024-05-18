@@ -293,6 +293,53 @@ export async function getUserByEmail(
         throw new Error("Error getting user" + error);
     }
 }
+export async function searchUser(email: string): Promise<UserNoPassword[]> {
+    if (!email) {
+        return [];
+    }
+    try {
+        // get everything excepted password
+        const user = await prisma.user.findMany({
+            where: {
+                email: {
+                    contains: email,
+                    mode: "insensitive",
+                },
+            },
+
+            select: {
+                address: true,
+                billingAddress1: true,
+                billingAddress2: true,
+                shippingAddress: true,
+                cart: true,
+                createdAt: true,
+                dateOfBirth: true,
+                description: true,
+                email: true,
+                emailVerified: true,
+                employee: true,
+                favoriteProduct: true,
+                favoriteProductIds: true,
+                firstName: true,
+                gender: true,
+                id: true,
+                image: true,
+                kind: true,
+                lastName: true,
+                name: true,
+                orders: true,
+                phoneNumber: true,
+                phoneVerified: true,
+                score: true,
+                updatedAt: true,
+            },
+        });
+        return user;
+    } catch (error) {
+        throw new Error("Error getting user" + error);
+    }
+}
 export async function getUserAdmin(email: string): Promise<IAdminUser | null> {
     if (!email) {
         throw new Error("Missting user id for get user");

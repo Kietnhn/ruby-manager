@@ -35,12 +35,13 @@ model User {
   discounts              Discount[]     @relation(fields: [discountIds], references: [id])
   discountIds            String[]       @unique @db.ObjectId
   cart                   Cart[]
-  favoriteProduct        Product[]      @relation(fields: [favoriteProductIds], references: [id])
-  favoriteProductIds     String[]       @unique @db.ObjectId
+  favoriteVariation      Variation[]    @relation(fields: [favoriteVariationIds], references: [id])
+  favoriteVariationIds   String[]       @unique @db.ObjectId
   kind                   UserKind       @default(MEMBER)
   score                  Int            @default(0)
   notificationsSent      Notification[] @relation("sender")
   notificationsRecipient Notification[] @relation("recipient")
+  reviews                Review[]
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 }
@@ -124,19 +125,19 @@ model Employee {
 }
 
 model Notification {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   content     String
-  isInternal  Boolean? @default(false)
-  sender      User     @relation("sender", fields: [senderId], references: [id])
-  senderId    String   @unique @db.ObjectId
-  recipient   User     @relation("recipient", fields: [recipientId], references: [id])
-  recipientId String   @unique @db.ObjectId
-  isReaded    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  product     Product? @relation(fields: [productId], references: [id])
-  deleted     Boolean? @default(false)
-  productId   String?  @unique @db.ObjectId
+  isInternal  Boolean?  @default(false)
+  sender      User      @relation("sender", fields: [senderId], references: [id])
+  senderId    String    @unique @db.ObjectId
+  recipient   User      @relation("recipient", fields: [recipientId], references: [id])
+  recipientId String    @unique @db.ObjectId
+  isReaded    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  variation   Variation @relation(fields: [variationId], references: [id])
+  variationId String    @db.ObjectId
+  deleted     Boolean?  @default(false)
 }
 
 model Address {
@@ -164,46 +165,32 @@ type Gallery {
 }
 
 model Product {
-  id              String         @id @default(auto()) @map("_id") @db.ObjectId
-  name            String
-  sku             String         @unique
-  slug            String?
-  description     String?
-  summary         String?
-  details         String?
-  category        Category?      @relation(fields: [categoryId], references: [id])
-  categoryId      String?        @unique @db.ObjectId
-  brand           Brand?         @relation(fields: [brandId], references: [id])
-  brandId         String?        @unique @db.ObjectId
-  price           Float
-  priceCurrency   String
-  discount        Discount?      @relation(fields: [discountId], references: [id])
-  discountId      String?        @unique @db.ObjectId
-  salePrice       Float?
-  weight          Float
-  collections     Collection[]   @relation(fields: [collectionIds], references: [id])
-  collectionIds   String[]       @unique @db.ObjectId
-  countryOfOrigin String?
-  gender          StyleGender    @default(UNISEX)
-  properties      Property[]     @relation(fields: [propertyIds], references: [id])
-  propertyIds     String[]       @unique @db.ObjectId
-  gallery         Gallery[]
-  isAvailable     Boolean //product available for sale
-  deleted         Boolean?       @default(false) // state of product deleted or not
-  variations      Variation[]
-  orderProducts   OrderProduct[]
-  notifications   Notification[]
-  favoriteOf      User[]         @relation(fields: [favoriteOfIds], references: [id])
-  favoriteOfIds   String[]       @unique @db.ObjectId
-  releaseAt       DateTime?
-  updatedAt       DateTime?      @updatedAt
-  createdAt       DateTime       @default(now())
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  sku         String      @unique
+  description String?
+  summary     String?
+  details     String?
+  category    Category    @relation(fields: [categoryId], references: [id])
+  categoryId  String      @unique @db.ObjectId
+  brand       Brand?      @relation(fields: [brandId], references: [id])
+  brandId     String?     @unique @db.ObjectId
+  gender      StyleGender @default(UNISEX)
+  properties  Property[]  @relation(fields: [propertyIds], references: [id])
+  propertyIds String[]    @unique @db.ObjectId
+  gallery     Gallery[]
+  deleted     Boolean?    @default(false) // state of product deleted or not
+  variations  Variation[]
+  releaseAt   DateTime?
+  updatedAt   DateTime?   @updatedAt
+  createdAt   DateTime    @default(now())
 }
 
 model Property {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  name       String //fit|style|material|technology|featured
-  value      String
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  name  String //fit|style|material|technology|featured
+  value String
+
   deleted    Boolean?  @default(false)
   products   Product[] @relation(fields: [productIds], references: [id])
   productIds String[]  @unique @db.ObjectId
@@ -258,20 +245,39 @@ model Brand {
   updatedAt   DateTime? @updatedAt
 }
 
+type Size {
+  size  String
+  stock Int
+}
+
 model Variation {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  sku           String         @unique
-  name          String
-  description   String?
-  images        String[]
-  stock         Int
-  size          String
-  color         String
-  product       Product        @relation(fields: [productId], references: [id])
-  productId     String         @db.ObjectId
-  orderProducts OrderProduct[]
-  carts         Cart[]
-  deleted       Boolean?       @default(false)
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  sku             String         @unique
+  name            String
+  images          String[]
+  description     String?
+  collections     Collection[]   @relation(fields: [collectionIds], references: [id])
+  collectionIds   String[]       @unique @db.ObjectId
+  orderProducts   OrderProduct[]
+  notifications   Notification[]
+  favoriteOf      User[]         @relation(fields: [favoriteOfIds], references: [id])
+  favoriteOfIds   String[]       @unique @db.ObjectId
+  reviews         Review[]
+  sizes           Size[]
+  color           String
+  product         Product        @relation(fields: [productId], references: [id])
+  productId       String         @db.ObjectId
+  price           Float
+  priceCurrency   String
+  discount        Discount?      @relation(fields: [discountId], references: [id])
+  discountId      String?        @unique @db.ObjectId
+  salePrice       Float?
+  countryOfOrigin String?
+  isAvailable     Boolean //product available for sale
+  carts           Cart[]
+  deleted         Boolean?       @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime?      @updatedAt
 }
 
 model OrderProduct {
@@ -280,8 +286,6 @@ model OrderProduct {
   orderId       String?   @db.ObjectId
   variation     Variation @relation(fields: [variationId], references: [id], onDelete: Cascade)
   variationId   String    @db.ObjectId
-  product       Product   @relation(fields: [productId], references: [id])
-  productId     String    @db.ObjectId
   quantity      Int
   priceCurrency String
   price         Float
@@ -326,14 +330,13 @@ model Order {
   status            OrderStatus
   locatedOrder      String? // Location of the order ex: store address or website link address
   deleted           Boolean?        @default(false)
-
-  discount    Discount? @relation(fields: [discountId], references: [id])
-  discountId  String?   @unique @db.ObjectId
-  createdAt   DateTime? @default(now())
-  processedAt DateTime? // Timestamp when the order was processed
-  shippingAt  DateTime?
-  paidAt      DateTime?
-  completedAt DateTime? // Timestamp when the order was completed
+  discount          Discount?       @relation(fields: [discountId], references: [id])
+  discountId        String?         @unique @db.ObjectId
+  createdAt         DateTime?       @default(now())
+  processedAt       DateTime? // Timestamp when the order was processed
+  shippingAt        DateTime?
+  paidAt            DateTime?
+  completedAt       DateTime? // Timestamp when the order was completed
 }
 
 enum ShippingStatus {
@@ -372,30 +375,20 @@ enum OrderStatus {
 }
 
 model Collection {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  code        String    @unique
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  code        String  @unique
   name        String
   image       String //picture of collection
   description String?
-  products    Product[] @relation(fields: [productIds], references: [id])
-  productIds  String[]  @unique @db.ObjectId
 
-  deleted Boolean? @default(false)
+  variation    Variation[] @relation(fields: [variationIds], references: [id])
+  variationIds String[]    @db.ObjectId
+  deleted      Boolean?    @default(false)
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 }
 
-// model Discount {
-//   id          String    @id @default(auto()) @map("_id") @db.ObjectId
-//   name        String
-//   description String?
-//   amount      Float
-//   percentage  Float?
-//   start_date  DateTime
-//   end_date    DateTime
-//   products    Product[]
-// }
 model Discount {
   id            String       @id @default(auto()) @map("_id") @db.ObjectId
   name          String
@@ -409,7 +402,7 @@ model Discount {
   end_date      DateTime
   quantity      Int
   minTotalPrice Float        @default(1)
-  product       Product?
+  variation     Variation?
   orders        Order[]
   users         User[]       @relation(fields: [userIds], references: [id])
   userIds       String[]     @unique @db.ObjectId
@@ -424,16 +417,20 @@ enum DiscountType {
   SHIPPING
 }
 
-// model Voucher {
-//   id          String    @id @default(auto()) @map("_id") @db.ObjectId
-//   name        String
-//   description String?
-//   amount      Float
-//   percentage  Float?
-//   start_date  DateTime
-//   end_date    DateTime?
-//   orders      Order[]
-// }
+model Review {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  heading     String
+  content     String
+  point       Int? //(1-5,step 1)
+  images      String[]
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  isRecommend Boolean //Use for recommendations
+  variation   Variation @relation(fields: [variationId], references: [id])
+  variationId String    @db.ObjectId
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
 
 model Image {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -448,7 +445,7 @@ model Page {
   title       String
   handle      String     @unique // url params
   body        String //tiptap string
-  description String? // use for SEO
+  description String?
   url         String
   parent      Page?      @relation("ChildPage", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   parentId    String?    @unique @db.ObjectId
@@ -463,4 +460,29 @@ model Page {
 enum PageStatus {
   PUBLIC
   PRIVATE
+}
+
+enum SectionType {
+  TEXT
+  LANDSCAPE
+  CAROUSEL
+}
+
+type SectionSource {
+  name        String?
+  description String?
+  url         String
+  href        String
+}
+
+model Section {
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  title        String?
+  subTitle     String?
+  handle       String
+  description  String?
+  type         SectionType
+  sources      SectionSource[]
+  enableDelete Boolean         @default(true)
+  createdAt    DateTime?       @default(now())
 }

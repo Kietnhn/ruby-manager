@@ -14,7 +14,7 @@ import {
     Card,
     Image,
 } from "@nextui-org/react";
-import { findProducts, searchProducts } from "@/lib/actions/product";
+import { findProducts } from "@/lib/actions/product";
 import { FullOrderProduct, FullProduct, IFindProduct } from "@/lib/definitions";
 import { useDebounce, useDebouncedCallback } from "use-debounce";
 const AutocomleteProducts = ({
@@ -28,7 +28,7 @@ const AutocomleteProducts = ({
     // const [inputValue, setInputValue] = useState<string>("");
     // const [debouncedInputValue] = useDebounce(inputValue, 300);
     const handleFindProducts = async (value: string) => {
-        const products = await searchProducts(value);
+        const products = await findProducts(value);
         console.log({ products });
 
         setSearchData(products);

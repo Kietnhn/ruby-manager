@@ -5,10 +5,18 @@ import { FlatProduct } from "@/lib/definitions";
 import { getPublicIdFromUrl, renderId, renderPrice } from "@/lib/utils";
 import { CheckCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
 
-import { Card, Image, Tooltip } from "@nextui-org/react";
+import {
+    Avatar,
+    AvatarGroup,
+    Card,
+    Image,
+    Tooltip,
+    image,
+} from "@nextui-org/react";
 import { Collection, Gallery, Property, StyleGender } from "@prisma/client";
 import { ColumnDef } from "@tanstack/react-table";
-
+import NoImage from "@/public/no-image.jpg";
+import { EditLinkButton } from "@/components/buttons";
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 
@@ -29,20 +37,32 @@ export const columns: ColumnDef<FlatProduct>[] = [
         enableSorting: false,
 
         cell: (props) => {
-            const imgs = props.getValue() as Gallery[];
+            const galleries = props.getValue() as Gallery[];
 
             return (
                 <div className="flex justify-center items-center">
-                    {imgs.length > 0 ? (
-                        <Card className="w-14 h-14 rounded-medium object-cover">
-                            <Image
-                                className="w-full h-full rounded-medium object-cover"
-                                src={imgs[0].image}
-                                alt={getPublicIdFromUrl(imgs[0].image)}
-                            />
-                        </Card>
+                    {galleries.length > 0 ? (
+                        <AvatarGroup max={3} isBordered>
+                            {galleries.map((gallery, index) => (
+                                <Avatar
+                                    key={index}
+                                    showFallback
+                                    name={gallery.color}
+                                    src={gallery.images[0]}
+                                    radius="sm"
+                                    alt={getPublicIdFromUrl(gallery.images[0])}
+                                    size="lg"
+                                />
+                            ))}
+                        </AvatarGroup>
                     ) : (
-                        <Card className="w-14 h-14 rounded-medium object-cover" />
+                        <Avatar
+                            size="lg"
+                            src={NoImage.src}
+                            alt={"No Image"}
+                            radius="sm"
+                            isBordered
+                        />
                     )}
                 </div>
             );
@@ -51,8 +71,10 @@ export const columns: ColumnDef<FlatProduct>[] = [
     {
         accessorKey: "name",
         header: "Name",
-        enableColumnFilter: true,
-        filterFn: "includesString",
+        // enableColumnFilter: true,
+        enableSorting: false,
+
+        // filterFn: "includesString",
         cell: (props) => {
             return (
                 <strong className="line-clamp-3">
@@ -61,30 +83,32 @@ export const columns: ColumnDef<FlatProduct>[] = [
             );
         },
     },
-    {
-        accessorKey: "description",
-        header: "Description",
-        enableSorting: false,
-        cell: (props) => {
-            const description = props.getValue() as string;
-            <div />;
-            return (
-                <div
-                    className="line-clamp-3"
-                    dangerouslySetInnerHTML={{ __html: description }}
-                />
-            );
-        },
-    },
+    // {
+    //     accessorKey: "description",
+    //     header: "Description",
+    //     enableSorting: false,
+    //     cell: (props) => {
+    //         const description = props.getValue() as string;
+    //         <div />;
+    //         return (
+    //             <div
+    //                 className="line-clamp-3"
+    //                 dangerouslySetInnerHTML={{ __html: description }}
+    //             />
+    //         );
+    //     },
+    // },
     {
         accessorKey: "gender",
         header: "Gender",
-        filterFn: (row, columnId, filterStatuses) => {
-            if (filterStatuses.length === 0) return true;
-            const gender: string = row.getValue(columnId);
+        enableSorting: false,
 
-            return filterStatuses.includes(gender);
-        },
+        // filterFn: (row, columnId, filterStatuses) => {
+        //     if (filterStatuses.length === 0) return true;
+        //     const gender: string = row.getValue(columnId);
+
+        //     return filterStatuses.includes(gender);
+        // },
         cell: (props) => {
             const gender = props.getValue() as StyleGender;
             return (
@@ -96,80 +120,15 @@ export const columns: ColumnDef<FlatProduct>[] = [
     },
 
     {
-        accessorKey: "price",
-        header: "Price",
-        cell: (props) => {
-            const salePrice = props.row.original.salePrice;
-            const priceCurrency = props.row.original.priceCurrency;
-            const price = props.getValue() as number;
-            return (
-                <>
-                    {salePrice ? (
-                        <Tooltip
-                            content={
-                                <p className=" ">
-                                    Original
-                                    <strong className="ml-0.5">
-                                        {renderPrice(price, priceCurrency)}
-                                    </strong>
-                                </p>
-                            }
-                        >
-                            <strong className="text-yellow-500">
-                                {renderPrice(salePrice, priceCurrency)}
-                            </strong>
-                        </Tooltip>
-                    ) : (
-                        <strong className=" ">
-                            {renderPrice(price, priceCurrency)}
-                        </strong>
-                    )}
-                </>
-            );
-        },
-    },
-    // {
-    //     accessorKey: "isAvailable",
-    //     header: "Availability",
-    //     cell: (props) => {
-    //         const isAvailable = props.getValue() as boolean;
-    //         return (
-    //             <div className="flex justify-center items-center">
-    //                 {isAvailable ? (
-    //                     <CheckCircleIcon className="w-5 h-5 text-success-500" />
-    //                 ) : (
-    //                     <NoSymbolIcon className="w-5 h-5 text-danger-500" />
-    //                 )}
-    //             </div>
-    //         );
-    //     },
-    // },
-    {
-        accessorKey: "brand",
-        header: "Brand",
-        filterFn: (row, columnId, filterStatuses) => {
-            if (filterStatuses.length === 0) return true;
-            const brand: string = row.getValue(columnId);
-
-            return filterStatuses.includes(brand);
-        },
-        cell: (props) => {
-            const brandCode = props.row.original.brandCode;
-            return (
-                <Tooltip content={props.getValue() as string}>
-                    <p className="capitalize">{brandCode}</p>
-                </Tooltip>
-            );
-        },
-    },
-    {
         accessorKey: "category",
         header: "Category",
-        filterFn: (row, columnId, filterStatuses) => {
-            if (filterStatuses.length === 0) return true;
-            const category: string = row.getValue(columnId);
-            return filterStatuses.includes(category);
-        },
+        enableSorting: false,
+
+        // filterFn: (row, columnId, filterStatuses) => {
+        //     if (filterStatuses.length === 0) return true;
+        //     const category: string = row.getValue(columnId);
+        //     return filterStatuses.includes(category);
+        // },
         cell: (props) => {
             const categoryCode = props.row.original.categoryCode;
             return (
@@ -179,38 +138,32 @@ export const columns: ColumnDef<FlatProduct>[] = [
             );
         },
     },
-
     {
-        accessorKey: "collections",
-        header: "Collections",
-        filterFn: (row, columnId, filterStatuses) => {
-            if (filterStatuses.length === 0) return true;
-            const collections: string[] = row.getValue(columnId);
+        accessorKey: "brand",
+        header: "Brand",
+        enableSorting: false,
 
-            return !!collections.find((coll) => filterStatuses.includes(coll));
-        },
+        // filterFn: (row, columnId, filterStatuses) => {
+        //     if (filterStatuses.length === 0) return true;
+        //     const brand: string = row.getValue(columnId);
+
+        //     return filterStatuses.includes(brand);
+        // },
         cell: (props) => {
-            const collections = props.getValue() as string[];
-            const collectionCodes = props.row.original.collectionCodes;
+            const brandCode = props.row.original.brandCode;
             return (
-                <div className="flex justify-center gap-2">
-                    {collections.map((name, index) => (
-                        <Tooltip content={name} key={index}>
-                            <p className="capitalize">
-                                {collectionCodes[index]}
-                                {index === collectionCodes.length - 1
-                                    ? ""
-                                    : ","}
-                            </p>
-                        </Tooltip>
-                    ))}
-                </div>
+                <Tooltip content={props.getValue() as string}>
+                    <p className="capitalize">{brandCode}</p>
+                </Tooltip>
             );
         },
     },
+
     {
         accessorKey: "properties",
         header: "Properties",
+        enableSorting: false,
+
         cell: (props) => {
             const properties = props.getValue() as Property[];
             const values = properties.map((property) => property.value);
@@ -221,25 +174,47 @@ export const columns: ColumnDef<FlatProduct>[] = [
             );
         },
     },
+    // {
+    //     accessorKey: "variationsLength",
+    //     header: "Variations",
+    //     enableSorting: false,
+
+    //     cell: (props) => {
+    //         return (
+    //             <p className="text-foreground-500 pointer-events-none">
+    //                 ({props.getValue() as number})
+    //             </p>
+    //         );
+    //     },
+    // },
     {
-        accessorKey: "variationsLength",
-        header: "Variations",
+        accessorKey: "releaseAt",
+        header: "Release at",
+        enableSorting: false,
+
         cell: (props) => {
+            const releaseAt = props.getValue() as Date;
             return (
-                <p className="text-gray-500 pointer-events-none">
-                    ({props.getValue() as number})
+                <p className="" suppressHydrationWarning>
+                    {releaseAt?.toLocaleDateString() || "null"}
                 </p>
             );
         },
     },
     {
-        header: "Actions",
+        header: "Action",
         enableSorting: false,
 
         cell: (props) => {
             const id = props.row.original.id;
-            const name = props.row.original.name;
-            return <ActionsProducts id={id} name={name} />;
+            // const name = props.row.original.name;
+            // return <ActionsProducts id={id} name={name} />;
+            return (
+                <EditLinkButton
+                    href={`/dashboard/products/${id}/edit`}
+                    content="Edit product"
+                />
+            );
         },
     },
 ];

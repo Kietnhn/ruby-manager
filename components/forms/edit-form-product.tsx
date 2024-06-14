@@ -22,6 +22,7 @@ import {
     Card,
     CardBody,
     CardHeader,
+    CircularProgress,
     Divider,
     Input,
     Link,
@@ -38,7 +39,6 @@ import {
 
 import {
     toCapitalize,
-    getVariationsHaveSameColor,
     groupCategories,
     toDateInputValue,
     convertDiscountTypeToUnit,
@@ -69,26 +69,30 @@ import { DataTable } from "../data-table";
 import { columns } from "@/app/dashboard/products/create/columns";
 import NotSetCategoryModal from "../modals/not-set-category-modal";
 import { setGallery } from "@/features/product-slice";
+import { convertVariationToInput } from "@/lib/utils/variation";
 const EditForm = ({
     categories,
     product,
     brands,
-    collections,
     properties,
-    discounts,
-}: {
+}: // collections,
+// discounts,
+{
     categories: ICategory[];
     product: DeepProduct;
     brands: Brand[];
-    collections: Collection[];
     properties: Property[];
-    discounts: Discount[];
+    // collections: Collection[];
+    // discounts: Discount[];
 }) => {
     const initialState = { message: null, errors: {} };
     const groupedCategories = useMemo(() => groupCategories(categories), []);
 
     // states
-    const initVariations = useMemo(() => product.variations, []);
+    // const initVariations = useMemo(() => {
+    //     const result = convertVariationToInput(product.variations);
+    //     return result;
+    // }, []);
     const { gallery, isShowWarning } = useAppSelector((store) => store.product);
     const [tmpMeasurement, setTmpMeasurement] = useState<Measurement | null>(
         product.category?.measurement as Measurement
@@ -100,84 +104,62 @@ const EditForm = ({
         product.category?.name || ""
     );
 
-    const [variations, setVariations] =
-        useState<VariationNoImages[]>(initVariations);
-    const [price, setPrice] = useState<number>(product.price);
-    const [salePrice, setSalePrice] = useState<number>(
-        product.salePrice || product.price
-    );
+    // const [variations, setVariations] =
+    //     useState<VariationNoImages[]>(initVariations);
+    // const [price, setPrice] = useState<number>(product.price);
+    // const [salePrice, setSalePrice] = useState<number>(
+    //     product.salePrice || product.price
+    // );
     const dispatch = useAppDispatch();
     // modal
     const { isOpen, onOpen, onClose } = useDisclosure();
 
-    const editProductWithData = editProduct.bind(null, {
-        productId: product.id,
-        variations: variations,
-        gallery,
-    });
+    const editProductWithData = editProduct.bind(null, product.id);
     // @ts-ignore
     const [state, formDispatch] = useFormState(
         editProductWithData,
         initialState
     );
 
-    const handleSelectCategory = (e: ChangeEvent<HTMLSelectElement>) => {
-        const selectedCategoryId = e.target.value;
-        const category = categories.find((c) => c.id === selectedCategoryId);
-        setCategoryName(category?.name as string);
-        setTmpMeasurement(category?.measurement as Measurement);
-    };
+    // const handleSelectCategory = (e: ChangeEvent<HTMLSelectElement>) => {
+    //     const selectedCategoryId = e.target.value;
+    //     const category = categories.find((c) => c.id === selectedCategoryId);
+    //     setCategoryName(category?.name as string);
+    //     setTmpMeasurement(category?.measurement as Measurement);
+    // };
 
-    const handleSelectDiscount = (e: ChangeEvent<HTMLSelectElement>) => {
-        const value = e.target.value;
-        const selectedDiscount = discounts.find(
-            (discount) => discount.id === value
-        );
-        if (!selectedDiscount || selectedDiscount.type === "SHIPPING") {
-            setSalePrice(price);
+    // const handleSelectDiscount = (e: ChangeEvent<HTMLSelectElement>) => {
+    //     const value = e.target.value;
+    //     const selectedDiscount = discounts.find(
+    //         (discount) => discount.id === value
+    //     );
+    //     if (!selectedDiscount || selectedDiscount.type === "SHIPPING") {
+    //         setSalePrice(price);
 
-            return;
-        }
-        if (selectedDiscount.type === "PERCENTAGE") {
-            const newSalesPrice =
-                price - (price * selectedDiscount.value) / 100;
-            setSalePrice(newSalesPrice);
-        } else {
-            const newSalesPrice = price - selectedDiscount.value;
-            setSalePrice(newSalesPrice);
-        }
-    };
-    const handleValidName = (e: any) => {
-        const value = e.target.value;
-        if (!value) {
-            e.target.focus();
-        } else {
-            setProductName(value);
-        }
-    };
+    //         return;
+    //     }
+    //     if (selectedDiscount.type === "PERCENTAGE") {
+    //         const newSalesPrice =
+    //             price - (price * selectedDiscount.value) / 100;
+    //         setSalePrice(newSalesPrice);
+    //     } else {
+    //         const newSalesPrice = price - selectedDiscount.value;
+    //         setSalePrice(newSalesPrice);
+    //     }
+    // };
+    // const handleValidName = (e: any) => {
+    //     const value = e.target.value;
+    //     if (!value) {
+    //         e.target.focus();
+    //     } else {
+    //         setProductName(value);
+    //     }
+    // };
     // effects
-    useEffect(() => {
-        console.log("product variations", product.variations);
-        console.log("variations", variations);
-
-        const uniqueColors = getUniqueColors(product.variations);
-        console.log("uniqueColors", uniqueColors);
-
-        // const initialGallery:TGallery[] = []
-        const initialGallery: TGallery[] = uniqueColors.map((color) => {
-            const variationMatchColor = product.variations.find(
-                (variation) => variation.color === color
-            );
-            return {
-                color: color,
-                images: variationMatchColor?.images as string[],
-            };
-        });
-        console.log("initialGallery", initialGallery);
-
-        // innitialize for gallery
-        dispatch(setGallery(initialGallery));
-    }, []);
+    // useEffect(() => {
+    //     // innitialize for gallery
+    //     dispatch(setGallery(product.gallery));
+    // }, []);
 
     return (
         <main>
@@ -187,14 +169,27 @@ const EditForm = ({
                         <div className="w-full flex flex-col gap-4">
                             <CardWrapper heading="General infomation">
                                 <div className="flex flex-col gap-4">
-                                    {/* Name */}
-                                    <DefaultInput
-                                        name="name"
-                                        size="lg"
-                                        defaultValue={product.name}
-                                        errorMessage={state.errors.name?.at(0)}
-                                        onBlur={handleValidName}
-                                    />
+                                    <div className="flex gap-4 flex-nowrap">
+                                        {/* Name */}
+                                        <DefaultInput
+                                            name="name"
+                                            defaultValue={product.name}
+                                            errorMessage={state.errors.name?.at(
+                                                0
+                                            )}
+                                            wrapper="w-1/2"
+                                        />
+                                        <DefaultInput
+                                            name="sku"
+                                            label="SKU"
+                                            defaultValue={product.sku}
+                                            placeholder="Ex: UOUBUCUCU1234567"
+                                            errorMessage={state.errors.sku?.at(
+                                                0
+                                            )}
+                                            wrapper="w-1/2"
+                                        />
+                                    </div>
 
                                     {/* Description */}
                                     <DefaultInput
@@ -206,41 +201,6 @@ const EditForm = ({
                                         }
                                         defaultValue={product.description || ""}
                                     />
-
-                                    {/*sku &  weight */}
-                                    <div className="flex gap-4 flex-nowrap">
-                                        <div className="w-1/2 ">
-                                            <DefaultInput
-                                                name="sku"
-                                                label="SKU"
-                                                defaultValue={product.sku}
-                                                placeholder="Ex: UOUBUCUCU1234567"
-                                                errorMessage={state.errors.sku?.at(
-                                                    0
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="w-1/2 ">
-                                            <DefaultInput
-                                                description="Used to calculate shipping rates at checkout and label prices during fulfillment."
-                                                name="weight"
-                                                type="number"
-                                                endContent={
-                                                    <Button
-                                                        isDisabled
-                                                        isIconOnly
-                                                        variant="light"
-                                                    >
-                                                        kg
-                                                    </Button>
-                                                }
-                                                defaultValue={product.weight.toString()}
-                                                errorMessage={state.errors.weight?.at(
-                                                    0
-                                                )}
-                                            />
-                                        </div>
-                                    </div>
 
                                     {/* Gender & releaseAt */}
                                     <div className="flex  gap-4 flex-nowrap">
@@ -273,7 +233,7 @@ const EditForm = ({
 
                                     {/* Summary */}
                                     <Collapse
-                                        initState={true}
+                                        // initState={true}
                                         title={
                                             <Textarea
                                                 name="summary"
@@ -325,7 +285,7 @@ const EditForm = ({
                                 </div>
                             </CardWrapper>
                             {/* gallery */}
-                            {gallery.length > 0 && (
+                            {/* {gallery.length > 0 && (
                                 <CardWrapper heading="Gallery">
                                     <div className="w-full flex flex-col gap-4">
                                         {gallery.map((item, index) => (
@@ -336,20 +296,13 @@ const EditForm = ({
                                         ))}
                                     </div>
                                 </CardWrapper>
-                            )}
-                            {/* properties*/}
-                            <CardWrapper heading="Properties">
-                                <Properties
-                                    properties={properties}
-                                    currentProperties={product.properties}
-                                />
-                            </CardWrapper>
+                            )} */}
                         </div>
                     </div>
                     <div className="w-2/5 mb-4">
                         <div className="flex flex-col gap-4">
                             {/* Pricing*/}
-                            <CardWrapper heading="Pricing">
+                            {/* <CardWrapper heading="Pricing">
                                 <div className="flex flex-col gap-4">
                                     <DefaultInput
                                         name="price"
@@ -454,7 +407,7 @@ const EditForm = ({
                                         }
                                     />
                                 </div>
-                            </CardWrapper>
+                            </CardWrapper> */}
                             {/* Organization*/}
                             <CardWrapper heading="Organization">
                                 <div className="flex flex-col gap-4">
@@ -501,7 +454,7 @@ const EditForm = ({
                                         errorMessage={state.errors.categoryId?.at(
                                             0
                                         )}
-                                        onChange={handleSelectCategory}
+                                        // onChange={handleSelectCategory}
                                     >
                                         {Object.keys(groupedCategories).map(
                                             (parentId, index) => (
@@ -533,7 +486,7 @@ const EditForm = ({
                                         )}
                                     </Select>
                                     {/* Collection */}
-                                    <Select
+                                    {/* <Select
                                         name="collectionIds"
                                         id="collectionIds"
                                         variant="bordered"
@@ -559,12 +512,12 @@ const EditForm = ({
                                                 {collection.name}
                                             </SelectItem>
                                         ))}
-                                    </Select>
+                                    </Select> */}
                                 </div>
                             </CardWrapper>
                             {/* Variation Attributes */}
 
-                            <CardWrapper
+                            {/* <CardWrapper
                                 className=" w-full !overflow-visible"
                                 classNames={{
                                     body: " w-full !overflow-visible",
@@ -579,10 +532,16 @@ const EditForm = ({
                                     setVariations={setVariations}
                                     measurement={tmpMeasurement}
                                 />
+                            </CardWrapper> */}
+                            {/* properties*/}
+                            <CardWrapper heading="Properties">
+                                <Properties
+                                    properties={properties}
+                                    currentProperties={product.properties}
+                                />
                             </CardWrapper>
-
                             {/* isAvailable */}
-                            <CardWrapper classNames={{ body: "p-0" }}>
+                            {/* <CardWrapper classNames={{ body: "p-0" }}>
                                 <CustomSwitch
                                     name="isAvailable"
                                     defaultSelected={product.isAvailable}
@@ -596,7 +555,7 @@ const EditForm = ({
                                         </p>
                                     </div>
                                 </CustomSwitch>
-                            </CardWrapper>
+                            </CardWrapper> */}
                             {state?.message && (
                                 <p className="mb-4 text-sm text-red-500">
                                     {state.message}
@@ -621,17 +580,23 @@ const EditForm = ({
                         </div>
                     </div>
                 </div>
-                {variations.length > 0 && (
-                    <div className="w-full">
-                        <CardWrapper heading="Variations" className="w-full">
-                            <DataTable
+                <div className="w-full">
+                    <CardWrapper heading="Variations" className="w-full">
+                        <div className="flex justify-end items-center">
+                            <Button
+                                as={Link}
+                                href={`/dashboard/products/${product.id}/variations/create`}
+                            >
+                                Create Variation
+                            </Button>
+                        </div>
+                        {/* <DataTable
                                 columns={columns}
-                                data={variations}
+                                data={product.variations}
                                 setData={setVariations}
-                            />
-                        </CardWrapper>
-                    </div>
-                )}
+                            /> */}
+                    </CardWrapper>
+                </div>
                 {/* <div>
                     <p>Edit Variations ?
                     <Link href={`/dashboard/products/${product.id}/variations/edit`}>Click here</Link>
@@ -654,7 +619,7 @@ function EditButton() {
             type="submit"
             className="w-full"
         >
-            Edit
+            {pending ? <CircularProgress aria-label="Loading..." /> : "Edit"}
         </Button>
     );
 }

@@ -24,6 +24,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import clsx from "clsx";
 import InputFilter from "./products/InputFilter";
 import { TypeFilter } from "../lib/definitions";
+import { DEFAULT_OFFSET_TABLE } from "@/lib/constants";
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -36,6 +37,7 @@ interface DataTableProps<TData, TValue> {
     rowSelection?: RowSelectionState;
     setRowSelection?: Dispatch<SetStateAction<RowSelectionState>>;
     keyId?: keyof TData;
+    isUsePagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +51,7 @@ export function DataTable<TData, TValue>({
     rowSelection,
     setRowSelection,
     keyId,
+    isUsePagination = true,
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = useState<TypeFilter[]>([]);
     const table = useReactTable({
@@ -63,7 +66,12 @@ export function DataTable<TData, TValue>({
                 ? { columnFilters }
                 : enableSelection
                 ? { rowSelection }
-                : {},
+                : {
+                      //   pagination: {
+                      //       pageSize: DEFAULT_OFFSET_TABLE,
+                      //       pageIndex: 0,
+                      //   },
+                  },
 
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -86,10 +94,12 @@ export function DataTable<TData, TValue>({
         },
         getRowId: keyId ? (row) => row[keyId] as string : undefined,
     });
-
+    const handleChangePagination = (e: number) => {
+        table.setPageIndex(e - 1);
+    };
     return (
         <>
-            {enableFilter && searchId && (
+            {/* {enableFilter && searchId && (
                 <div className="flex mb-4">
                     <InputFilter
                         setColumnFilters={setColumnFilters}
@@ -98,7 +108,7 @@ export function DataTable<TData, TValue>({
                         filterId={filterId}
                     />
                 </div>
-            )}
+            )} */}
             <div className="border-medium rounded-medium">
                 <Table>
                     <TableHeader>
@@ -191,12 +201,13 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            {table.getPageCount() > 1 && (
+            {isUsePagination && table.getPageCount() > 1 && (
                 <div className="my-4 flex items-center justify-end px-4">
                     <Pagination
                         showControls
+                        variant="light"
                         total={table.getPageCount()}
-                        onChange={(e) => table.setPageIndex(e - 1)}
+                        onChange={handleChangePagination}
                         initialPage={1}
                     />
                 </div>

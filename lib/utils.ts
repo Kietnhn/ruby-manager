@@ -21,6 +21,16 @@ import {
     toCalendarDateTime,
 } from "@internationalized/date";
 import _ from "lodash";
+export function convertToArray(input: string | string[] | undefined): string[] {
+    if (input === undefined) {
+        return []; // Return an empty array if input is undefined
+    } else if (typeof input === "string") {
+        return [input]; // Return an array with the string if input is a string
+    } else {
+        return input; // Return the input array if it's already an array
+    }
+}
+
 export function convertToSlug(name: string): string {
     return name
         .toLowerCase() // Convert the string to lowercase
@@ -172,17 +182,17 @@ export function convertToOptionSelectArray(
 
     return optionSelectArray;
 }
-export function groupAvailableVariations(variations: Variation[]): Select[] {
-    const availableVariations = variations.filter(
-        (variation) => variation.stock > 0
-    );
-    return convertToOptionSelectArray(
-        availableVariations.map((variation) => ({
-            size: variation.size as string,
-            color: variation.color as string,
-        }))
-    );
-}
+// export function groupAvailableVariations(variations: Variation[]): Select[] {
+//     const availableVariations = variations.filter(
+//         (variation) => variation.stock > 0
+//     );
+//     return convertToOptionSelectArray(
+//         availableVariations.map((variation) => ({
+//             size: variation.size as string,
+//             color: variation.color as string,
+//         }))
+//     );
+// }
 export function getUniqueColors(vartiaions: VariationNoImages[]): string[] {
     const colorsSet: Set<string> = new Set();
     vartiaions.forEach((variation) => {
@@ -202,14 +212,14 @@ export function getUniqueSizes(vartiaions: VariationNoImages[]): string[] {
     return Array.from(sizeSet);
 }
 
-export function findVariation(
-    variations: Variation[],
-    variation: Variation
-): Variation {
-    return variations.find(
-        (vari) => vari.color === variation.color && vari.size === variation.size
-    ) as Variation;
-}
+// export function findVariation(
+//     variations: Variation[],
+//     variation: Variation
+// ): Variation {
+//     return variations.find(
+//         (vari) => vari.color === variation.color && vari.size === variation.size
+//     ) as Variation;
+// }
 export function isUserAdult(dateOfBirth: Date): boolean {
     const today: Date = new Date();
     const age: number = today.getFullYear() - dateOfBirth.getFullYear();
@@ -260,10 +270,7 @@ export function selectColorsData(): ISelectColorsData[] {
 export function reverseArrayToString(array: string[]) {
     return array.join(" | ");
 }
-export function getVariationHaveImages(variations: Variation[]) {
-    const result = variations.find((variation) => variation.images.length > 0);
-    return result;
-}
+
 export function getVariationHaveQuantity(variations: VariationNoImages[]) {
     const result = variations.find((variation) => variation.stock > 0);
     return result;
@@ -307,53 +314,37 @@ export function mergeOrderProducts(
 
     return mergedOrderProducts;
 }
-export function getAvailableVariations(variations: Variation[]): Variation[] {
-    const result = variations.filter((variation) => variation.stock > 0);
-    return result;
-}
-export function getVariationsHaveSameColor(
-    variations: Variation[]
-): Variation[] {
-    const colors = variations.map((variation) => variation.color);
-    let uniqueColors = colors.filter(
-        (value, index, self) => self.indexOf(value) === index
-    );
-    const firstVariations = uniqueColors.map((color) =>
-        variations.find((variation) =>
-            variation.images?.length > 0
-                ? variation.color === color && variation.images.length > 0
-                : variation.color === color
-        )
-    );
+// export function getAvailableVariations(variations: Variation[]): Variation[] {
+//     const result = variations.filter((variation) => variation.stock > 0);
+//     return result;
+// }
 
-    return firstVariations as Variation[];
-}
-export function getVariationsHaveDifferentColor(
-    variations: Variation[]
-): Variation[] {
-    const uniqueColors = getUniqueColors(variations);
-    console.log(uniqueColors);
+// export function getVariationsHaveDifferentColor(
+//     variations: Variation[]
+// ): Variation[] {
+//     const uniqueColors = getUniqueColors(variations);
+//     console.log(uniqueColors);
 
-    const uniqueVariationColor = uniqueColors.map((color) =>
-        variations.find((variation) => variation.color == color)
-    );
-    console.log({ uniqueVariationColor });
+//     const uniqueVariationColor = uniqueColors.map((color) =>
+//         variations.find((variation) => variation.color == color)
+//     );
+//     console.log({ uniqueVariationColor });
 
-    return uniqueVariationColor as Variation[];
-}
-export function getUniqueVariationColorOfProducts(products: FullProduct[]) {
-    const newProducts: FullProduct[] = [];
-    products.forEach((product) => {
-        const uniqueColors = getUniqueColors(product.variations);
-        uniqueColors.forEach((color) => {
-            const variationOfColor = product.variations.filter(
-                (variation) => variation.color === color
-            );
-            newProducts.push({ ...product, variations: [...variationOfColor] });
-        });
-    });
-    return newProducts;
-}
+//     return uniqueVariationColor as Variation[];
+// }
+// export function getUniqueVariationColorOfProducts(products: FullProduct[]) {
+//     const newProducts: FullProduct[] = [];
+//     products.forEach((product) => {
+//         const uniqueColors = getUniqueColors(product.variations);
+//         uniqueColors.forEach((color) => {
+//             const variationOfColor = product.variations.filter(
+//                 (variation) => variation.color === color
+//             );
+//             newProducts.push({ ...product, variations: [...variationOfColor] });
+//         });
+//     });
+//     return newProducts;
+// }
 export function generateToImagesFromUrls(Urls: string[]): Image[] {
     return Urls.map((url) => ({
         createdAt: new Date(),
@@ -374,18 +365,13 @@ export function isVideo(url: string): boolean {
     }
 }
 export const generateUniqueSKU = async (
-    countryOfOrigin: string,
     brandId: string,
     categoryId: string,
-    collectionId: string,
     gender: string
 ): Promise<string> => {
     let isUnique = false;
     let sku = "";
 
-    let codeCountryOfOrigin = countryOfOrigin
-        ? countryOfOrigin.substring(0, 2)
-        : "UO";
     let codeBrand = "UB";
     if (brandId) {
         const brand = await prisma.brand.findUnique({ where: { id: brandId } });
@@ -402,58 +388,15 @@ export const generateUniqueSKU = async (
             codeCategory = category.code.substring(0, 2);
         }
     }
-    let codeColletion = "UC";
-    if (collectionId) {
-        const collection = await prisma.category.findUnique({
-            where: { id: collectionId },
-        });
-        if (collection) {
-            codeColletion = collection.code.substring(0, 2);
-        }
-    }
+
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
     while (!isUnique) {
         // Generate a potential SKU using information from category, collection, and brand
         let potentialSKU = "";
-        potentialSKU += codeCountryOfOrigin;
         potentialSKU += codeBrand;
         potentialSKU += codeCategory;
-        potentialSKU += codeColletion;
         potentialSKU += gender[0];
-        for (let i = 0; i < 7; i++) {
-            const randomIndex = Math.floor(Math.random() * characters.length);
-            potentialSKU += characters[randomIndex];
-        }
-
-        // Check if the potential SKU is already used
-        const existingProduct = await prisma.product.findFirst({
-            where: { sku: potentialSKU },
-        });
-
-        if (!existingProduct) {
-            // SKU is unique, assign it to sku variable
-            sku = potentialSKU;
-            isUnique = true;
-        }
-    }
-
-    return sku;
-};
-export const generateVariationUniqueSKU = async (
-    parentSKU: string,
-    size: string,
-    color: string
-): Promise<string> => {
-    let isUnique = false;
-    let sku = "";
-
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
-    while (!isUnique) {
-        // Generate a potential SKU using information from category, collection, and brand
-        let potentialSKU = parentSKU; //16 length string
-        potentialSKU += size; // from 1 - 3  or more length string
-        potentialSKU + color.substring(0, 2); //2 length
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 5; i++) {
             const randomIndex = Math.floor(Math.random() * characters.length);
             potentialSKU += characters[randomIndex];
         }
@@ -488,12 +431,7 @@ export const convertToFlatProducts = (
             sku: product.sku,
             brand: product.brand?.name || "",
             brandCode: product.brand?.code || "",
-            collections: product.collections.map(
-                (collection) => collection.name
-            ),
-            collectionCodes: product.collections.map(
-                (collection) => collection.code
-            ),
+
             properties: product.properties,
             category: product.category?.name || "",
             categoryCode: product.category?.code || "",
@@ -502,10 +440,8 @@ export const convertToFlatProducts = (
             description: product.description || "",
             gender: product.gender || "",
             gallery: product.gallery,
-            isAvailable: product.isAvailable,
-            price: product.price,
-            priceCurrency: product.priceCurrency,
-            salePrice: product.salePrice,
+
+            releaseAt: product.releaseAt,
             stock: 0,
         };
         return flat;

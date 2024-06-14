@@ -1,23 +1,44 @@
 import React from "react";
-import { getProducts } from "@/lib/actions/product";
+import { getProducts, searchProducts } from "@/lib/actions/product";
 
 import { FlatProduct, FullProduct } from "@/lib/definitions";
 import { DataTable } from "../data-table";
 import { columns } from "@/app/dashboard/products/columns";
 import { convertToFlatProducts } from "@/lib/utils";
 import ImpExpButtons from "../ImpExpButtons";
+import { Button, Input, Pagination } from "@nextui-org/react";
+import { FunnelIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import InputSearch from "../search/input-search";
+import PaginationTable from "../pagination";
+import FilterWrapper from "../products/filter-wrapper";
+import { ProductFilterOptions, SortByData } from "@/lib/definitions/product";
 
-export default async function TableProducts() {
-    const products = await getProducts();
-    if (!products) {
-        return <p className="text-red-500">{"not products"}</p>;
-    }
+export default async function TableProducts({
+    query,
+    filterOptions,
+    currentPage,
+    totalPages,
+    sortOption,
+}: {
+    query: string;
+    filterOptions: ProductFilterOptions;
+    sortOption: SortByData | undefined;
+    currentPage: number;
+    totalPages: number;
+}) {
+    const products = await searchProducts({
+        value: query,
+        filterOptions: filterOptions,
+        page: currentPage - 1,
+        sortOption: sortOption,
+    });
 
     const flatProducts: FlatProduct[] = convertToFlatProducts(products);
 
     return (
-        <div className="container mx-auto ">
-            <div className="mb-4">
+        <div className="container mx-auto flex flex-col gap-4">
+            <FilterWrapper />
+            {/* <div className="mb-4">
                 <h3 className="">
                     There are <strong>{products.length}</strong> products in
                     store
@@ -29,15 +50,21 @@ export default async function TableProducts() {
                     impUrl="/dashboard/products/create/import "
                     nameFile="products"
                 />
-            </div>
+            </div> */}
             <DataTable
                 columns={columns}
                 data={flatProducts}
                 setData={null}
-                enableFilter={true}
-                searchId="name"
-                filterId="category"
+                isUsePagination={false}
+                // enableFilter={true}
+                // searchId="name"
+                // filterId="category"
             />
+            {totalPages > 1 && (
+                <div className="my-4 flex items-center justify-end px-4">
+                    <PaginationTable total={totalPages} />
+                </div>
+            )}
         </div>
     );
 }

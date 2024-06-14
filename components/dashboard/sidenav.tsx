@@ -38,7 +38,7 @@ export default function SideNav({ user }: { user: UserNoPassword }) {
     // }, [isShowAsideMenu]);
     return (
         <div
-            className="fixed left-0 bottom-0 top-0 z-50 light:bg-gray-50 dark:bg-content1 shadow-medium"
+            className="sticky top-0 left-0 z-50 h-screen light:bg-gray-50 dark:bg-content1 shadow-medium"
             ref={contentRef}
         >
             <div className="flex h-full flex-col px-3 py-4 md:px-2 overflow-auto custom-scrollbar">
@@ -62,9 +62,9 @@ export default function SideNav({ user }: { user: UserNoPassword }) {
                 <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
                     <NavLinks isOpen={isShowAsideMenu} />
                     <div className="hidden h-auto w-full grow rounded-md  md:block"></div>
-                    <Divider />
+                    {/* <Divider /> */}
 
-                    <div className="flex-center">
+                    {/* <div className="flex-center">
                         <Dropdown
                             placement="right-end"
                             classNames={{ content: "min-w-[140px]" }}
@@ -113,7 +113,7 @@ export default function SideNav({ user }: { user: UserNoPassword }) {
                                 </DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="absolute right-0 top-[calc((var(--navbar-height))/2)] -translate-y-1/2 translate-x-1/2  hidden md:block z-50">

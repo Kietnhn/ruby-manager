@@ -1,6 +1,6 @@
 "use server";
 
-import { Gallery, Product, Variation } from "@prisma/client";
+import { Gallery, Product, Size, Variation } from "@prisma/client";
 import { productSchema, propertyShema } from "../schema";
 import {
     DeepProduct,
@@ -16,7 +16,6 @@ import {
     convertToSlug,
     differenceArray,
     generateUniqueSKU,
-    generateVariationUniqueSKU,
     getUniqueColors,
     getUniqueSizes,
     getVariationHaveQuantity,
@@ -26,6 +25,11 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
+import { DEFAULT_OFFSET_TABLE } from "../constants";
+import { ProductFilterOptions, SortByData } from "../definitions/product";
+import { IActionVariation } from "../definitions/variation";
+import { createUniqueStringArray } from "../utils/product";
+import { generateVariationUniqueSKU } from "../utils/variation";
 // dashboard/product
 const CreateProduct = productSchema;
 type PayloadAddProduct = {
@@ -33,26 +37,19 @@ type PayloadAddProduct = {
     gallery: TGallery[];
 };
 export async function addProduct(
-    payloadAddProduct: PayloadAddProduct,
+    // payloadAddProduct: PayloadAddProduct,
     prevState: State,
     formData: FormData
 ) {
-    const { gallery, variations } = payloadAddProduct;
-
     const validatedFields = CreateProduct.safeParse({
         name: formData.get("name"),
-        weight: formData.get("weight"),
         description: formData.get("description"),
         summary: formData.get("summary"),
         details: formData.get("details"),
         categoryId: formData.get("categoryId"),
         brandId: formData.get("brandId"),
-        collectionIds: formData.getAll("collectionIds"),
         gender: formData.get("gender"),
-        isAvailable: formData.get("isAvailable"),
-        discountId: formData.get("discountId"),
-        price: formData.get("price"),
-        salePrice: formData.get("salePrice"),
+
         propertyIds: formData.getAll("propertyIds"),
         releaseAt: formData.get("releaseAt"),
         sku: formData.get("sku"),
@@ -73,66 +70,17 @@ export async function addProduct(
         description,
         details,
         summary,
-        price,
         gender,
         categoryId,
-        collectionIds,
         brandId,
-        countryOfOrigin,
-        isAvailable,
-        weight,
+
         propertyIds,
         sku,
         releaseAt,
-        discountId,
-        salePrice,
     } = validatedFields.data;
 
-    if (variations.length <= 0) {
-        return {
-            errors: {},
-            message: "Missing Variations",
-        };
-    }
-    const sizes = getUniqueSizes(variations);
-    if (sizes.length === 0) {
-        return {
-            errors: {},
-            message: "All variations must to have a size",
-        };
-    }
-    const colors = getUniqueColors(variations);
-    if (colors.length === 0) {
-        return {
-            errors: {},
-            message: "The product must have as least one color",
-        };
-    }
-
-    const validateImagesByColor = gallery.filter(
-        (item) => item.images.filter((img) => !img).length >= 0
-    );
-    if (
-        isAvailable &&
-        (validateImagesByColor.length === 0 ||
-            !getVariationHaveQuantity(variations))
-    ) {
-        return {
-            errors: {},
-            message: "Missing quantity or images. Failed to create Product",
-        };
-    }
-
     let productSku = sku;
-    if (!productSku) {
-        productSku = await generateUniqueSKU(
-            countryOfOrigin as string,
-            "",
-            categoryId || "",
-            "",
-            gender
-        );
-    } else {
+    if (productSku) {
         const existedProductSKU = await prisma.product.findFirst({
             where: {
                 sku: productSku,
@@ -145,43 +93,8 @@ export async function addProduct(
             };
         }
     }
-    const variationsWithSku: Variation[] = [];
-    for (const variation of variations) {
-        const variationSku = await generateVariationUniqueSKU(
-            productSku as string,
-            variation.size,
-            variation.color
-        );
-        const galleryOfColor = gallery.find(
-            (item) => item.color === variation.color
-        );
-        if (!galleryOfColor)
-            return {
-                errors: {},
-                message: "Colors mismatch",
-            };
-        variationsWithSku.push({
-            ...variation,
-            images: galleryOfColor.images,
-            sku: variationSku,
-            deleted: false,
-        });
-    }
-
-    const galleryInterface: Gallery[] = gallery.map((item) => ({
-        color: item.color,
-        image: item.images.at(0) as string,
-    }));
-    const newVariations = variationsWithSku.map((variation) => ({
-        sku: variation.sku,
-        name: variation.name || name,
-        description: variation.description,
-        images: variation.images,
-        color: variation.color,
-        size: variation.size,
-        stock: variation.stock,
-        deleted: false,
-    }));
+    productSku = await generateUniqueSKU(brandId || "", categoryId, gender);
+    let createdProductId: string = "";
     try {
         await prisma.$transaction(async (tx) => {
             const createdProduct = await tx.product.create({
@@ -189,52 +102,27 @@ export async function addProduct(
                     name,
                     releaseAt: releaseAt || null,
                     sku: productSku as string,
-                    isAvailable: isAvailable,
                     details,
                     summary,
-                    countryOfOrigin: countryOfOrigin,
-                    weight: weight,
                     gender,
                     description: description as string,
-                    price,
-                    discountId: discountId,
-                    salePrice: salePrice,
-                    slug: convertToSlug(name),
-                    categoryId: categoryId || null,
+                    gallery: [],
+                    categoryId: categoryId,
                     brandId: brandId || null,
-                    collectionIds: collectionIds,
+
                     propertyIds: propertyIds,
-                    priceCurrency: "USD",
-                    gallery: galleryInterface,
-                    variations: {
-                        createMany: {
-                            data: newVariations,
-                        },
-                    },
                 },
             });
-            if (discountId) {
-                console.log("update discount");
+            createdProductId = createdProduct.id;
+            // add properties
+            if (propertyIds && propertyIds.length > 0) {
+                console.log("update property");
 
-                await tx.discount.update({
+                await tx.property.updateMany({
                     where: {
-                        id: discountId,
-                    },
-                    data: {
-                        quantity: {
-                            decrement: 1,
+                        id: {
+                            in: propertyIds,
                         },
-                    },
-                });
-            }
-            console.log(collectionIds);
-
-            if (collectionIds && collectionIds.length > 0) {
-                console.log("update collections");
-
-                await tx.collection.updateMany({
-                    where: {
-                        id: { in: collectionIds },
                     },
                     data: {
                         productIds: {
@@ -248,22 +136,222 @@ export async function addProduct(
         throw new Error("Error at add product: " + error);
     }
     revalidatePath("/dashboard/products/create");
-    redirect("/dashboard/products");
+    redirect(`/dashboard/products/${createdProductId}/variations/create`);
 }
+// export async function addProduct(
+//     payloadAddProduct: PayloadAddProduct,
+//     prevState: State,
+//     formData: FormData
+// ) {
+//     const validatedFields = CreateProduct.safeParse({
+//         name: formData.get("name"),
+//         weight: formData.get("weight"),
+//         description: formData.get("description"),
+//         summary: formData.get("summary"),
+//         details: formData.get("details"),
+//         categoryId: formData.get("categoryId"),
+//         brandId: formData.get("brandId"),
+//         collectionIds: formData.getAll("collectionIds"),
+//         gender: formData.get("gender"),
+//         isAvailable: formData.get("isAvailable"),
+//         discountId: formData.get("discountId"),
+//         price: formData.get("price"),
+//         salePrice: formData.get("salePrice"),
+//         propertyIds: formData.getAll("propertyIds"),
+//         releaseAt: formData.get("releaseAt"),
+//         sku: formData.get("sku"),
+//         gallery: payloadAddProduct.gallery,
+//         variations: payloadAddProduct.variations,
+//     });
+
+//     if (!validatedFields.success) {
+//         console.log(validatedFields.error.flatten().fieldErrors);
+
+//         return {
+//             errors: validatedFields.error.flatten().fieldErrors,
+//             message: "Missing Fields. Failed to create Product.",
+//         };
+//     }
+
+//     // Prepare data for insertion into the database
+//     const {
+//         name,
+//         description,
+//         details,
+//         summary,
+//         price,
+//         gender,
+//         categoryId,
+//         collectionIds,
+//         brandId,
+//         countryOfOrigin,
+//         isAvailable,
+//         weight,
+//         propertyIds,
+//         sku,
+//         releaseAt,
+//         discountId,
+//         salePrice,
+//         gallery,
+//         variations,
+//     } = validatedFields.data;
+
+//     if (isAvailable) {
+//         const allVariationsHaveStock = variations.every(
+//             (variation) => variation.stock > 0
+//         );
+//         if (!allVariationsHaveStock) {
+//             return {
+//                 errors: {},
+//                 message:
+//                     "When available, all variations must have stock greater than 0",
+//             };
+//         }
+//     }
+//     let productSku = sku;
+//     if (productSku) {
+//         const existedProductSKU = await prisma.product.findFirst({
+//             where: {
+//                 sku: productSku,
+//             },
+//         });
+//         if (existedProductSKU) {
+//             return {
+//                 errors: {},
+//                 message: "SKU is existed",
+//             };
+//         }
+//     }
+//     productSku = await generateUniqueSKU(
+//         countryOfOrigin as string,
+//         "",
+//         categoryId || "",
+//         "",
+//         gender
+//     );
+
+//     const newVariations: IActionVariation[] = [];
+//     for (const galleryItem of gallery) {
+//         const variationSku = await generateVariationUniqueSKU();
+//         const matchVariation = variations.find(
+//             (variation) => variation.color === galleryItem.color
+//         );
+//         const groupedSize: Size[] = variations
+//             .filter((variation) => variation.color === galleryItem.color)
+//             .map((variation) => ({
+//                 size: variation.size,
+//                 stock: variation.stock,
+//             }));
+//         if (!matchVariation) {
+//             throw new Error("Variation missed match");
+//         }
+//         newVariations.push({
+//             sku: variationSku,
+//             deleted: false,
+//             name: matchVariation.name || name,
+//             description: matchVariation.description || null,
+//             color: matchVariation.color,
+//             sizes: groupedSize,
+//         });
+//     }
+
+//     try {
+//         await prisma.$transaction(async (tx) => {
+//             const createdProduct = await tx.product.create({
+//                 data: {
+//                     name,
+//                     releaseAt: releaseAt || null,
+//                     sku: productSku as string,
+//                     isAvailable: isAvailable,
+//                     details,
+//                     summary,
+//                     countryOfOrigin: countryOfOrigin,
+//                     weight: weight,
+//                     gender,
+//                     description: description as string,
+
+//                     price,
+//                     discountId: discountId,
+//                     salePrice: salePrice,
+//                     slug: convertToSlug(name),
+//                     categoryId: categoryId || null,
+//                     brandId: brandId || null,
+
+//                     collectionIds: collectionIds,
+//                     propertyIds: propertyIds,
+//                     priceCurrency: "USD",
+
+//                     gallery: gallery,
+//                     variations: {
+//                         createMany: {
+//                             data: newVariations,
+//                         },
+//                     },
+//                 },
+//             });
+//             // add properties
+//             if (propertyIds && propertyIds.length > 0) {
+//                 console.log("update property");
+
+//                 await tx.property.updateMany({
+//                     where: {
+//                         id: {
+//                             in: propertyIds,
+//                         },
+//                     },
+//                     data: {
+//                         productIds: {
+//                             push: createdProduct.id,
+//                         },
+//                     },
+//                 });
+//             }
+//             if (discountId) {
+//                 console.log("update discount");
+
+//                 await tx.discount.update({
+//                     where: {
+//                         id: discountId,
+//                     },
+//                     data: {
+//                         quantity: {
+//                             decrement: 1,
+//                         },
+//                     },
+//                 });
+//             }
+//             console.log(collectionIds);
+
+//             if (collectionIds && collectionIds.length > 0) {
+//                 console.log("update collections");
+
+//                 await tx.collection.updateMany({
+//                     where: {
+//                         id: { in: collectionIds },
+//                     },
+//                     data: {
+//                         productIds: {
+//                             push: createdProduct.id,
+//                         },
+//                     },
+//                 });
+//             }
+//         });
+//     } catch (error) {
+//         throw new Error("Error at add product: " + error);
+//     }
+//     revalidatePath("/dashboard/products/create");
+//     redirect("/dashboard/products");
+// }
 
 const EditProduct = productSchema;
-interface PayloadEditProduct extends PayloadAddProduct {
-    productId: string;
-}
+interface PayloadEditProduct extends PayloadAddProduct {}
 export async function editProduct(
-    payloadEditProduct: PayloadEditProduct,
+    productId: string,
     prevState: State,
     formData: FormData
 ) {
-    const { productId, variations, gallery } = payloadEditProduct;
     console.log("productId", productId);
-    console.log("variations", variations);
-    console.log("gallery", gallery);
 
     if (!productId) {
         return {
@@ -288,6 +376,8 @@ export async function editProduct(
         propertyIds: formData.getAll("propertyIds"),
         releaseAt: formData.get("releaseAt"),
         sku: formData.get("sku"),
+        gallery: payloadEditProduct.gallery,
+        variations: payloadEditProduct.variations,
     });
     if (!validatedFields.success) {
         return {
@@ -314,51 +404,25 @@ export async function editProduct(
         summary,
         discountId,
         salePrice,
+        gallery,
+        variations,
     } = validatedFields.data;
-    if (variations.length <= 0) {
-        return {
-            errors: {},
-            message: "Missing Variations",
-        };
-    }
-    const sizes = getUniqueSizes(variations);
-    if (sizes.length === 0) {
-        return {
-            errors: {},
-            message: "All variations must to have a size",
-        };
-    }
-    const colors = getUniqueColors(variations);
-    if (colors.length === 0) {
-        return {
-            errors: {},
-            message: "The product must have as least one color",
-        };
-    }
-    const validateImagesByColor = gallery.filter(
-        (item) => item.images.filter((img) => !img).length >= 0
-    );
-    if (
-        isAvailable &&
-        (validateImagesByColor.length === 0 ||
-            !getVariationHaveQuantity(variations))
-    ) {
-        return {
-            errors: {},
-            message: "Missing quantity or images. Failed to create Product",
-        };
+
+    if (isAvailable) {
+        const allVariationsHaveStock = variations.every(
+            (variation) => variation.stock > 0
+        );
+        if (!allVariationsHaveStock) {
+            return {
+                errors: {},
+                message:
+                    "When available, all variations must have stock greater than 0",
+            };
+        }
     }
 
     let productSku = sku;
-    if (!productSku) {
-        productSku = await generateUniqueSKU(
-            countryOfOrigin as string,
-            brandId || "",
-            categoryId || "",
-            "",
-            gender
-        );
-    } else {
+    if (productSku) {
         const existedProductSKU = await prisma.product.findFirst({
             where: {
                 AND: [
@@ -380,63 +444,38 @@ export async function editProduct(
             };
         }
     }
-    // const variationsWithSku: Variation[] = [];
-    // for (const variation of variations) {
-    //     const variationSku = await generateVariationUniqueSKU(
-    //         productSku as string,
-    //         variation.size,
-    //         variation.color
-    //     );
-    //     const galleryOfColor = gallery.find((item) => item.color);
-    //     if (!galleryOfColor)
-    //         return {
-    //             errors: {},
-    //             message: "Colors mismatch",
-    //         };
-    //     variationsWithSku.push({
-    //         ...variation,
-    //         images: galleryOfColor.images,
-    //         sku: variationSku,
-    //         deleted: false,
-    //     });
-    // }
-    const galleryInterface: Gallery[] = gallery.map((item) => ({
-        color: item.color,
-        image: item.images.at(0) as string,
-    }));
-    const newVariations: Variation[] = [];
-    for (const variation of variations) {
-        const galleryOfColor = gallery.find(
-            (item) => item.color === variation.color
+    productSku = await generateUniqueSKU(
+        countryOfOrigin as string,
+        brandId || "",
+        categoryId || "",
+        "",
+        gender
+    );
+
+    const newVariations: IActionVariation[] = [];
+    for (const galleryItem of gallery) {
+        const variationSku = await generateVariationUniqueSKU();
+        const matchVariation = variations.find(
+            (variation) => variation.color === galleryItem.color
         );
-        let variationSku = variation.sku;
-        if (!variationSku) {
-            variationSku = await generateVariationUniqueSKU(
-                productSku,
-                variation.size,
-                variation.color
-            );
+        const groupedSize: Size[] = variations
+            .filter((variation) => variation.color === galleryItem.color)
+            .map((variation) => ({
+                size: variation.size,
+                stock: variation.stock,
+            }));
+        if (!matchVariation) {
+            throw new Error("Variation missed match");
         }
-        if (!galleryOfColor)
-            return {
-                errors: {},
-                message: "Colors mismatch",
-            };
         newVariations.push({
-            id: variation.id,
             sku: variationSku,
-            name: variation.name || name,
-            description: variation.description,
-            images: galleryOfColor.images,
-            color: variation.color,
-            size: variation.size,
-            stock: variation.stock,
             deleted: false,
-            productId: productId,
+            name: matchVariation.name || name,
+            description: matchVariation.description || null,
+            color: matchVariation.color,
+            sizes: groupedSize,
         });
     }
-    console.table(variations);
-    console.table(newVariations);
     try {
         await prisma.$transaction(async (tx) => {
             //update product
@@ -461,12 +500,7 @@ export async function editProduct(
                     brandId: brandId || null,
                     collectionIds: collectionIds,
                     priceCurrency: "USD",
-                    gallery: galleryInterface,
-                    // variations: {
-                    //     createMany: {
-                    //         data: newVariations,
-                    //     },
-                    // },
+                    gallery: gallery,
                 },
                 where: {
                     id: productId,
@@ -481,13 +515,13 @@ export async function editProduct(
 
             console.log("existingVariations", existingVariations);
 
-            const newVariationsIds = newVariations.map(
-                (variation) => variation.id
+            const newVariationsSkus = newVariations.map(
+                (variation) => variation.sku
             );
             // Identify variations to delete
             const variationsToDelete = existingVariations.filter(
                 (variation) =>
-                    !newVariationsIds.includes(variation.id) &&
+                    !newVariationsSkus.includes(variation.sku) &&
                     variation.deleted === false
             );
             console.log("variationsToDelete", variationsToDelete);
@@ -495,10 +529,7 @@ export async function editProduct(
             // Identify variations to add or update
             const variationsToAddOrUpdate = newVariations.map((variation) => {
                 const matchExistedVariation = existingVariations.find(
-                    (v) =>
-                        v.color === variation.color &&
-                        v.size === variation.size &&
-                        v.deleted === true
+                    (v) => v.sku === variation.sku && v.deleted === true
                 );
                 return {
                     ...variation,
@@ -544,9 +575,7 @@ export async function editProduct(
                     update: {
                         name: variation.name,
                         description: variation.description,
-                        images: variation.images,
-                        stock: variation.stock,
-                        size: variation.size,
+                        sizes: variation.sizes,
                         color: variation.color,
                         productId: productId,
                         deleted: false,
@@ -555,9 +584,7 @@ export async function editProduct(
                         sku: variation.sku,
                         name: variation.name,
                         description: variation.description,
-                        images: variation.images,
-                        stock: variation.stock,
-                        size: variation.size,
+                        sizes: variation.sizes,
                         color: variation.color,
                         productId: productId,
                         deleted: false,
@@ -565,18 +592,67 @@ export async function editProduct(
                 });
                 console.log("upsert", JSON.stringify(upserted));
             }
-            // Perform upsert (add or update) operations
-            // await Promise.all(
-            //     variationsToAddOrUpdate.map((variation) => {
 
-            //         console.log("create or update variation");
-
-            //         // }
-            //     })
-            // );
             console.table("upserted variants");
 
-            if (!collectionIds || collectionIds.length === 0) return;
+            const propertiesBeforeUpdate = await tx.property.findMany({
+                where: {
+                    productIds: {
+                        has: productId,
+                    },
+                },
+                select: {
+                    id: true,
+                    productIds: true,
+                },
+            });
+
+            const propertiesBeforeUpdateIds = propertiesBeforeUpdate.map(
+                (collection) => collection.id
+            );
+            const changePropertyIds = differenceArray(
+                propertyIds || [],
+                propertiesBeforeUpdateIds
+            );
+            console.log("Changed properties", changePropertyIds);
+
+            if (changePropertyIds.length !== 0) {
+                console.log("updating properties");
+                // remove all properties have product id
+                for (const propertyId of propertiesBeforeUpdateIds) {
+                    const matchedProperty = propertiesBeforeUpdate.find(
+                        (collection) => collection.id === propertyId
+                    );
+                    if (!matchedProperty)
+                        throw new Error("Collection not found");
+                    const removedCurrentProductId =
+                        matchedProperty.productIds.filter(
+                            (pId) => pId !== productId
+                        );
+                    await tx.property.update({
+                        where: {
+                            id: propertyId,
+                        },
+                        data: {
+                            productIds: removedCurrentProductId,
+                        },
+                    });
+                }
+                // update like create product
+                await tx.property.updateMany({
+                    where: {
+                        id: { in: propertyIds },
+                    },
+                    data: {
+                        productIds: {
+                            push: updatedProduct.id,
+                        },
+                    },
+                });
+                console.log("updated properties");
+            }
+
+            // if (!collectionIds || collectionIds.length === 0) return;
             // many to many relationships -> so the collection not update yet
             const collectionsBeforeUpdate = await tx.collection.findMany({
                 where: {
@@ -593,43 +669,46 @@ export async function editProduct(
                 (collection) => collection.id
             );
             const changedCollectionIds = differenceArray(
-                collectionIds,
+                collectionIds || [],
                 collectionBeforeUpdateIds
             );
             console.log("Changed collection", changedCollectionIds);
 
-            if (changedCollectionIds.length === 0) return;
-            console.log("updating collections");
-            // remove all collections have product id
-            for (const collectionId of collectionBeforeUpdateIds) {
-                const matchedCollection = collectionsBeforeUpdate.find(
-                    (collection) => collection.id === collectionId
-                );
-                if (!matchedCollection) throw new Error("Collection not found");
-                const removedCurrentProductId =
-                    matchedCollection.productIds.filter(
-                        (pId) => pId !== productId
+            if (changedCollectionIds.length !== 0) {
+                console.log("updating collections");
+                // remove all collections have product id
+                for (const collectionId of collectionBeforeUpdateIds) {
+                    const matchedCollection = collectionsBeforeUpdate.find(
+                        (collection) => collection.id === collectionId
                     );
-                await tx.collection.update({
+                    if (!matchedCollection)
+                        throw new Error("Collection not found");
+                    const removedCurrentProductId =
+                        matchedCollection.productIds.filter(
+                            (pId) => pId !== productId
+                        );
+                    await tx.collection.update({
+                        where: {
+                            id: collectionId,
+                        },
+                        data: {
+                            productIds: removedCurrentProductId,
+                        },
+                    });
+                }
+                // update like create product
+                await tx.collection.updateMany({
                     where: {
-                        id: collectionId,
+                        id: { in: collectionIds },
                     },
                     data: {
-                        productIds: removedCurrentProductId,
+                        productIds: {
+                            push: updatedProduct.id,
+                        },
                     },
                 });
+                console.log("updated collections");
             }
-            // update like create product
-            await tx.collection.updateMany({
-                where: {
-                    id: { in: collectionIds },
-                },
-                data: {
-                    productIds: {
-                        push: updatedProduct.id,
-                    },
-                },
-            });
         });
     } catch (error) {
         throw new Error("Error at edit product: " + error);
@@ -637,89 +716,87 @@ export async function editProduct(
     revalidatePath(`/dashboard/products/${productId}/edit`);
     redirect("/dashboard/products");
 }
-async function updateProductWithVariations(
-    productId: string,
-    newVariations: Variation[]
-): Promise<Variation[]> {
-    // Fetch existing variations for the product
-    const existingVariations = await prisma.variation.findMany({
-        where: { productId: productId },
-    });
+// async function updateProductWithVariations(
+//     productId: string,
+//     newVariations: Variation[]
+// ): Promise<Variation[]> {
+//     // Fetch existing variations for the product
+//     const existingVariations = await prisma.variation.findMany({
+//         where: { productId: productId },
+//     });
 
-    // Map existing variations by id for quick lookup
-    // const existingVariationsMap = existingVariations.reduce((map, variation) => {
-    //   map[variation.id] = variation;
-    //   return map;
-    // }, {} as Record<string, Variation>);
+//     // Map existing variations by id for quick lookup
+//     // const existingVariationsMap = existingVariations.reduce((map, variation) => {
+//     //   map[variation.id] = variation;
+//     //   return map;
+//     // }, {} as Record<string, Variation>);
 
-    // Map new variations by sku for quick lookup
-    const newVariationsMap = newVariations.reduce((map, variation) => {
-        map[variation.sku] = variation;
-        return map;
-    }, {} as Record<string, Variation>);
+//     // Map new variations by sku for quick lookup
+//     const newVariationsMap = newVariations.reduce((map, variation) => {
+//         map[variation.sku] = variation;
+//         return map;
+//     }, {} as Record<string, Variation>);
 
-    // Identify variations to delete
-    const variationsToDelete = existingVariations.filter(
-        (variation) => !newVariationsMap[variation.sku]
-    );
+//     // Identify variations to delete
+//     const variationsToDelete = existingVariations.filter(
+//         (variation) => !newVariationsMap[variation.sku]
+//     );
 
-    // Identify variations to add or update
-    const variationsToAddOrUpdate = newVariations.map((variation) => ({
-        ...variation,
-        productId: productId,
-    }));
+//     // Identify variations to add or update
+//     const variationsToAddOrUpdate = newVariations.map((variation) => ({
+//         ...variation,
+//         productId: productId,
+//     }));
 
-    // Perform deletion
-    await prisma.variation.deleteMany({
-        where: {
-            id: { in: variationsToDelete.map((variation) => variation.id) },
-            orderProducts: {
-                none: {}, // This checks that there are  related OrderProduct records
-            },
-        },
-    });
-    await prisma.variation.updateMany({
-        where: {
-            id: { in: variationsToDelete.map((variation) => variation.id) },
-            orderProducts: {
-                some: {}, // This checks that there are  related OrderProduct records
-            },
-        },
-        data: {
-            deleted: true,
-        },
-    });
+//     // Perform deletion
+//     await prisma.variation.deleteMany({
+//         where: {
+//             id: { in: variationsToDelete.map((variation) => variation.id) },
+//             orderProducts: {
+//                 none: {}, // This checks that there are  related OrderProduct records
+//             },
+//         },
+//     });
+//     await prisma.variation.updateMany({
+//         where: {
+//             id: { in: variationsToDelete.map((variation) => variation.id) },
+//             orderProducts: {
+//                 some: {}, // This checks that there are  related OrderProduct records
+//             },
+//         },
+//         data: {
+//             deleted: true,
+//         },
+//     });
 
-    // Perform upsert (add or update) operations
-    const upsertedVariations = await Promise.all(
-        variationsToAddOrUpdate.map((variation) =>
-            prisma.variation.upsert({
-                where: { sku: variation.sku },
-                update: {
-                    name: variation.name,
-                    description: variation.description,
-                    images: variation.images,
-                    stock: variation.stock,
-                    size: variation.size,
-                    color: variation.color,
-                    productId: productId,
-                },
-                create: {
-                    sku: variation.sku,
-                    name: variation.name,
-                    description: variation.description,
-                    images: variation.images,
-                    stock: variation.stock,
-                    size: variation.size,
-                    color: variation.color,
-                    productId: productId,
-                },
-            })
-        )
-    );
+//     // Perform upsert (add or update) operations
+//     const upsertedVariations = await Promise.all(
+//         variationsToAddOrUpdate.map((variation) =>
+//             prisma.variation.upsert({
+//                 where: { sku: variation.sku },
+//                 update: {
+//                     name: variation.name,
+//                     description: variation.description,
+//                     stock: variation.stock,
+//                     size: variation.size,
+//                     color: variation.color,
+//                     productId: productId,
+//                 },
+//                 create: {
+//                     sku: variation.sku,
+//                     name: variation.name,
+//                     description: variation.description,
+//                     stock: variation.stock,
+//                     size: variation.size,
+//                     color: variation.color,
+//                     productId: productId,
+//                 },
+//             })
+//         )
+//     );
 
-    return upsertedVariations;
-}
+//     return upsertedVariations;
+// }
 
 export async function getVariaionsOfProduct(
     productId: string
@@ -807,18 +884,12 @@ export async function getProducts(): Promise<FullProduct[]> {
         const products = await prisma.product.findMany({
             include: {
                 category: true,
-                variations: {
-                    where: {
-                        deleted: false,
-                    },
-                },
-                collections: true,
+                variations: true,
                 properties: true,
                 brand: true,
             },
             where: {
                 deleted: false,
-                isAvailable: true,
             },
             take: 50,
             orderBy: { createdAt: "desc" },
@@ -964,18 +1035,128 @@ export async function getAvailableProducts() {
         throw new Error("Error at get availableProdcuts" + error);
     }
 }
-export async function findProducts(
-    value: string,
-    take: number = 20,
-    skip: number = 0
-): Promise<IFindProduct[]> {
-    if (!value) return [];
+type SearchProductParams = {
+    value: string;
+    filterOptions: ProductFilterOptions;
+    sortOption?: SortByData | undefined;
+    page: number;
+    limit?: number;
+};
+export async function searchProducts({
+    value,
+    filterOptions,
+    sortOption,
+    page = 0,
+    limit = DEFAULT_OFFSET_TABLE,
+}: SearchProductParams): Promise<FullProduct[]> {
     try {
         const products = await prisma.product.findMany({
             include: {
                 category: true,
                 variations: true,
+                properties: true,
+                brand: true,
             },
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                name: {
+                                    contains: value,
+                                    mode: "insensitive",
+                                },
+                            },
+                            {
+                                sku: {
+                                    contains: value,
+                                    mode: "insensitive",
+                                },
+                            },
+                            {
+                                category: {
+                                    name: {
+                                        contains: value,
+                                        mode: "insensitive",
+                                    },
+                                },
+                            },
+                            {
+                                brand: {
+                                    name: {
+                                        contains: value,
+                                        mode: "insensitive",
+                                    },
+                                },
+                            },
+                            {
+                                description: {
+                                    contains: value,
+                                    mode: "insensitive",
+                                },
+                            },
+
+                            {
+                                summary: {
+                                    contains: value,
+                                    mode: "insensitive",
+                                },
+                            },
+                            {
+                                details: {
+                                    contains: value,
+                                    mode: "insensitive",
+                                },
+                            },
+                        ],
+                    },
+                    filterOptions.gender.length > 0
+                        ? {
+                              gender: {
+                                  in: filterOptions.gender,
+                              },
+                          }
+                        : {},
+                    filterOptions.brand.length > 0
+                        ? { brand: { code: { in: filterOptions.brand } } }
+                        : {},
+                    filterOptions.category.length > 0
+                        ? { category: { code: { in: filterOptions.category } } }
+                        : {},
+
+                    filterOptions.property.length > 0
+                        ? {
+                              properties: {
+                                  some: {
+                                      id: { in: filterOptions.property },
+                                  },
+                              },
+                          }
+                        : {},
+                ],
+
+                deleted: false,
+            },
+            skip: page * limit,
+            take: limit,
+            orderBy: sortOption
+                ? {
+                      [sortOption.value]: sortOption.direction,
+                  }
+                : { createdAt: "desc" },
+        });
+
+        return products;
+    } catch (error) {
+        throw new Error("Error at find prodcuts" + error);
+    }
+}
+export async function getTotalPagesOfProduct(
+    value: string,
+    filterOptions: ProductFilterOptions
+): Promise<number> {
+    try {
+        const totalSearchedProduct = await prisma.product.count({
             where: {
                 AND: [
                     {
@@ -1008,16 +1189,7 @@ export async function findProducts(
                                     mode: "insensitive",
                                 },
                             },
-                            {
-                                variations: {
-                                    some: {
-                                        color: {
-                                            contains: value,
-                                            mode: "insensitive",
-                                        },
-                                    },
-                                },
-                            },
+
                             {
                                 summary: {
                                     contains: value,
@@ -1030,43 +1202,46 @@ export async function findProducts(
                                     mode: "insensitive",
                                 },
                             },
-                            {
-                                properties: {
-                                    some: {
-                                        value: {
-                                            contains: value,
-                                            mode: "insensitive",
-                                        },
-                                    },
-                                },
-                            },
                         ],
                     },
-                    {
-                        variations: {
-                            some: {
-                                stock: {
-                                    gt: 0,
-                                },
-                            },
-                        },
-                    },
+                    filterOptions.gender.length > 0
+                        ? {
+                              gender: {
+                                  in: filterOptions.gender,
+                              },
+                          }
+                        : {},
+                    filterOptions.brand.length > 0
+                        ? { brand: { code: { in: filterOptions.brand } } }
+                        : {},
+                    filterOptions.category.length > 0
+                        ? { category: { code: { in: filterOptions.category } } }
+                        : {},
+
+                    filterOptions.property.length > 0
+                        ? {
+                              properties: {
+                                  some: {
+                                      id: { in: filterOptions.property },
+                                  },
+                              },
+                          }
+                        : {},
                 ],
 
-                isAvailable: true,
                 deleted: false,
             },
-            take: take,
-            skip: skip,
-            orderBy: { createdAt: "desc" },
         });
 
-        return products;
+        const totalPages = Math.ceil(
+            totalSearchedProduct / DEFAULT_OFFSET_TABLE
+        );
+        return totalPages;
     } catch (error) {
         throw new Error("Error at find prodcuts" + error);
     }
 }
-export async function searchProducts(
+export async function findProducts(
     value: string,
     take: number = 20,
     skip: number = 0
@@ -1100,16 +1275,15 @@ export async function searchProducts(
                     },
                 ],
 
-                variations: {
-                    some: {
-                        stock: {
-                            gt: 0,
-                        },
-                        deleted: false,
-                    },
-                },
+                // variations: {
+                //     some: {
+                //         stock: {
+                //             gt: 0,
+                //         },
+                //         deleted: false,
+                //     },
+                // },
 
-                isAvailable: true,
                 deleted: false,
             },
             take: take,
@@ -1137,7 +1311,6 @@ export async function getProductById(id: string): Promise<DeepProduct> {
                 },
                 properties: true,
                 brand: true,
-                collections: true,
                 variations: {
                     where: {
                         deleted: false,
@@ -1189,194 +1362,7 @@ export async function restoreProduct(id: string) {
     revalidatePath("/dashboard/products/deleted");
     redirect("/dashboard/products/deleted");
 }
-const CreateProperty = propertyShema;
-export async function createProperty(prevState: State, formData: FormData) {
-    const validatedFields = CreateProperty.safeParse({
-        name: formData.get("name"),
-        values: formData.get("values"),
-    });
 
-    if (!validatedFields.success) {
-        console.log(validatedFields.error.flatten().fieldErrors);
-
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to create property.",
-        };
-    }
-
-    // Prepare data for insertion into the database
-    const { name, values } = validatedFields.data;
-    const arrayValues = splitAndTrimString(values);
-
-    try {
-        const existed = await prisma.property.findMany({
-            where: {
-                AND: [
-                    {
-                        name: name,
-                    },
-                    {
-                        value: { in: arrayValues },
-                    },
-                ],
-            },
-        });
-
-        if (existed.length > 0) {
-            const valuesExisted = existed.map((v) => v.value);
-            return {
-                errors: {},
-                message: `Values ${valuesExisted.join(
-                    ", "
-                )} is already existed in property ${name}, Please remove those in form data`,
-            };
-        }
-        for (const value of arrayValues) {
-            await prisma.property.createMany({
-                data: {
-                    name,
-                    value: value,
-                },
-            });
-        }
-    } catch (error) {
-        throw new Error("Error at create property" + error);
-    }
-    revalidatePath("/dashboard/products/properties/create");
-    redirect("/dashboard/products/properties");
-}
-const EditProperty = propertyShema;
-export async function editProperty(
-    propertyId: string,
-    prevState: State,
-    formData: FormData
-) {
-    if (!propertyId) {
-        return {
-            errors: {},
-            message: "Missing property id Field.",
-        };
-    }
-    const validatedFields = EditProperty.safeParse({
-        name: formData.get("name"),
-        values: formData.get("values"), // this is only one string value
-    });
-
-    if (!validatedFields.success) {
-        console.log(validatedFields.error.flatten().fieldErrors);
-
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to create property.",
-        };
-    }
-
-    // Prepare data for insertion into the database
-    const { name, values } = validatedFields.data;
-    if (values.includes("|")) {
-        return {
-            errors: {},
-            message: "Just edit one value at the same time",
-        };
-    }
-    try {
-        const existedProperty = await prisma.property.findFirst({
-            where: {
-                name: name,
-                id: {
-                    not: propertyId,
-                },
-            },
-        });
-        if (existedProperty) {
-            return {
-                errors: {},
-                message: `${existedProperty.value} already existed in property ${existedProperty.name}. Please change another name or value`,
-            };
-        }
-
-        await prisma.property.update({
-            where: {
-                id: propertyId,
-            },
-            data: {
-                name,
-                value: values,
-            },
-        });
-    } catch (error) {
-        throw new Error("Error at create property" + error);
-    }
-    redirect("/dashboard/products/properties");
-}
-export async function getProperties() {
-    // Prepare data for insertion into the database
-
-    try {
-        const properties = await prisma.property.findMany({
-            where: {
-                deleted: false,
-            },
-        });
-
-        return properties;
-    } catch (error) {
-        throw new Error("Error at create property" + error);
-    }
-    revalidatePath("/dashboard/products/create");
-    redirect("/dashboard/products");
-}
-export async function getPropertyById(propertyId: string) {
-    // Prepare data for insertion into the database
-    if (!propertyId) {
-        throw new Error("Error at property id at get property");
-    }
-    try {
-        const property = await prisma.property.findUnique({
-            where: {
-                id: propertyId,
-            },
-        });
-        return property;
-    } catch (error) {
-        throw new Error("Error at create property" + error);
-    }
-}
-export async function getPropertiesByName(propertyName: string) {
-    // Prepare data for insertion into the database
-    if (!propertyName) {
-        throw new Error("Missing property name at get property");
-    }
-    try {
-        const properties = await prisma.property.findMany({
-            where: {
-                name: propertyName,
-            },
-        });
-        return properties;
-    } catch (error) {
-        throw new Error("Error at create property" + error);
-    }
-}
-export async function deleteProperty(propertyId: string) {
-    if (!propertyId) {
-        throw new Error("Missing property id in delete property");
-    }
-    try {
-        await prisma.product.update({
-            where: {
-                id: propertyId,
-            },
-            data: {
-                deleted: true,
-            },
-        });
-    } catch (error) {
-        throw new Error("Error at delete product" + error);
-    }
-    redirect("/dashboard/products/properties");
-}
 // export async function saveDraftProduct(
 //     variations: Variation[],
 //     prevState: State,

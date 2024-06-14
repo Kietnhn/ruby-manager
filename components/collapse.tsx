@@ -1,22 +1,33 @@
 "use client";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { cn } from "@nextui-org/react";
 import { useState } from "react";
 
 const Collapse = ({
     title,
     children,
     initState = false,
+    isBordered = true,
 }: {
     title: React.ReactNode;
     children: React.ReactNode;
     initState?: boolean;
+    isBordered?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(initState);
 
     return (
-        <div className="border rounded-lg overflow-hidden">
+        <div
+            className={cn(
+                " rounded-lg overflow-hidden",
+                isBordered && "border"
+            )}
+        >
             <div
-                className="border-b cursor-pointer py-2 px-4  flex justify-between items-center"
+                className={cn(
+                    " cursor-pointer py-2 px-4  flex justify-between gap-4 items-center",
+                    isBordered && "border-b"
+                )}
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {title}
@@ -28,7 +39,7 @@ const Collapse = ({
             </div>
             <div
                 className={`  transition-max-height duration-300 overflow-hidden ${
-                    isOpen ? "max-h-screen py-2 px-4" : "max-h-0"
+                    isOpen ? "max-h-full py-2 px-4" : "max-h-0"
                 }`}
             >
                 {children}

@@ -32,6 +32,7 @@ export default function Wrapper({
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -10, opacity: 0 }}
                 transition={{ duration: 0.2 }}
+                className="flex flex-col gap-4"
             >
                 {children}
             </motion.div>

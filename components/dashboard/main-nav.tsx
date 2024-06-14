@@ -21,7 +21,7 @@ import Notifications from "../notifications";
 export default function MainNav({ user }: { user: UserNoPassword }) {
     const pathname = usePathname();
     return (
-        <Navbar maxWidth="full" position="sticky">
+        <Navbar maxWidth="full" position="sticky" isBordered shouldHideOnScroll>
             {pathname === "/dashboard" && (
                 <NavbarContent className="hidden sm:flex gap-4" justify="start">
                     <NavbarItem>

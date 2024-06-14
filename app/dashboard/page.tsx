@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 export default async function DashboardPage() {
     return (
-        <main className="flex flex-col gap-4">
+        <main className="flex flex-col gap-4 py-12">
             {/* load at first */}
             <Suspense fallback={"loading..."}>
                 <MainDashboard />

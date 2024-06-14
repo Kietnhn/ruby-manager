@@ -18,6 +18,21 @@ export const userSchema = z.object({
         .string()
         .min(6, { message: "Password must be at least 6 characters" }),
 });
+export const variationSchema = z.object({
+    sku: z.string().min(0),
+    name: z.string(),
+    description: z.string().optional(),
+    stock: z.coerce.number(),
+    size: z.string(),
+    color: z.string(),
+    productId: z.string(),
+});
+const galleryItemSchema = z.object({
+    images: z
+        .array(z.string().min(1, "Image URL cannot be empty"))
+        .min(1, "Images must at least contain one image URL"),
+    color: z.string().min(1),
+});
 export const productSchema = z.object({
     id: z.string().optional(), // Since it's auto-generated
     name: z.string().min(1, { message: "Name is required" }),
@@ -32,20 +47,20 @@ export const productSchema = z.object({
     description: z.string().optional(),
     summary: z.string().optional(),
     details: z.string().optional(),
-    weight: z.coerce
-        .number()
-        .gt(0, { message: "Please enter weight greater than 0." }),
-    categoryId: z.string().nullish(),
+    // weight: z.coerce
+    //     .number()
+    //     .gt(0, { message: "Please enter weight greater than 0." }),
+    categoryId: z.string().min(0, { message: "Please select a category" }),
     brandId: z.string().nullish(),
-    discountId: z.string().nullish(),
-    collectionIds: z.string().array().optional(),
+    // discountId: z.string().nullish(),
+    // collectionIds: z.string().array().optional(),
     gender: z.enum(["MEN", "WOMEN", "UNISEX"]).default("UNISEX"),
-    price: z.coerce
-        .number()
-        .gt(0, { message: "Please enter an amount greater than $0." }), // Assuming Price is already defined
-    salePrice: z.coerce.number().optional(),
-    countryOfOrigin: z.string().optional(),
-    isAvailable: z.coerce.boolean(),
+    // price: z.coerce
+    //     .number()
+    //     .gt(0, { message: "Please enter an amount greater than $0." }), // Assuming Price is already defined
+    // salePrice: z.coerce.number().optional(),
+    // countryOfOrigin: z.string().optional(),
+    // isAvailable: z.coerce.boolean(),
     propertyIds: z.string().array().optional(),
     releaseAt: z
         .string()
@@ -56,7 +71,12 @@ export const productSchema = z.object({
             }
             return value;
         }),
-
+    // gallery: z
+    //     .array(galleryItemSchema)
+    //     .min(1, "The product must have at least one gallery"),
+    // variations: z
+    //     .array(variationSchema)
+    //     .min(1, "The product must have at least one variation"),
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
 });
@@ -167,4 +187,64 @@ export const pageSchema = z.object({
         message: "Start date must greater than  now",
     }),
     parentId: z.string().nullish(),
+});
+// SectionSource validation
+const SectionSourceSchema = z.object({
+    name: z.string().min(1, { message: "Name is required" }),
+    description: z.string().optional(),
+    url: z.string().url(),
+    href: z.string().min(1, { message: "Href is required" }),
+});
+
+const SectionSourceLandscapeSchema = z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    url: z.string().url(),
+    href: z.string().min(1, { message: "Href is required" }),
+});
+
+// Section validation
+//   const SectionSchema = z.object({
+//     id: z.string().optional(), // Assuming auto-generated ID, so optional for input validation
+//     title: z.string().optional(),
+//     handle: z.string(),
+//     description: z.string().optional(),
+//     type: SectionType,
+//     sources: z.array(SectionSourceSchema), // Corrected to be an array of SectionSource
+//     caption: SectionCaptionSchema.optional(),
+//     enableDelete: z.boolean().default(true),
+//     createdAt: z.date().optional() // Assuming auto-generated timestamp, so optional for input validation
+//   });
+export const SectionCarouselSchema = z.object({
+    title: z.string().min(1, { message: "Title is required" }),
+    description: z.string().optional(),
+    handle: z.string().min(1, { message: "Handle is required" }),
+    sources: z.array(SectionSourceSchema).min(2),
+});
+export const SectionLandscapeSchema = z.object({
+    title: z.string().min(1, { message: "Title is required" }),
+    subTitle: z.string().optional(),
+    description: z.string().optional(),
+    handle: z.string().min(1, { message: "Handle is required" }),
+    source: SectionSourceLandscapeSchema,
+});
+
+export const reviewSchema = z.object({
+    rating: z.coerce.number().min(1).max(5),
+    heading: z.string().min(1, { message: "Title is required" }).max(150),
+    content: z.string().optional(),
+    isRecommend: z.coerce.boolean(),
+    // images: z.union([
+
+    //     z.null(),
+    //     z.array(z.any()).length(0),
+    //     z.array(
+    //         z
+    //             .instanceof(File)
+    //             // .refine((file) => file.type.startsWith("image/"), {
+    //             //     message: "File must be an image",
+    //             // })
+    //     ),
+    // ]),
+    images: z.array(z.any()).nullish(),
 });

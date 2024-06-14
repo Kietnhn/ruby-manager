@@ -24,7 +24,7 @@ export async function getInternalNotifications(): Promise<
                 createdAt: "desc",
             },
             include: {
-                product: true,
+                variation: true,
             },
         });
         return internalNotifications;

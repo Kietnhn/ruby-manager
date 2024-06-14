@@ -189,15 +189,22 @@ export function EditLinkButton(props: EditLinkButtonProps) {
 interface IViewLinkButtonProps extends ButtonProps {
     href: string;
     content: string;
+    isShowTitle?: boolean;
 }
 
 export function ViewLinkButton(props: IViewLinkButtonProps) {
-    const { href, content, ...rest } = props;
+    const { href, content, isShowTitle = false, ...rest } = props;
     return (
         <Link href={href}>
             <Tooltip content={content} showArrow>
-                <Button isIconOnly color="primary" variant="bordered" {...rest}>
+                <Button
+                    isIconOnly={!isShowTitle}
+                    color="primary"
+                    variant="bordered"
+                    {...rest}
+                >
                     <EyeIcon className="h-5 w-5" />
+                    {isShowTitle && content}
                 </Button>
             </Tooltip>
         </Link>

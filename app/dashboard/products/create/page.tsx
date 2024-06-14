@@ -1,23 +1,32 @@
 import Breadcrumbs from "@/components/breadcrumbs";
 import { Metadata } from "next";
 import CreateForm from "@/components/forms/create-form-product";
-import { getBrands, getCollections } from "@/lib/actions";
 import { getCategories } from "@/lib/actions/category";
-import { getProperties } from "@/lib/actions/product";
 import { getProductDiscounts } from "@/lib/actions/discounts";
+// import { getCollections } from "@/lib/actions/collection";
+import { getBrands } from "@/lib/actions/brand";
+import { getProperties } from "@/lib/actions/property";
+import { getCountries } from "@/lib/actions";
 
 export const metadata: Metadata = {
     title: "Create product",
 };
 export default async function Page() {
-    const [categories, collections, brands, properties, discounts] =
-        await Promise.all([
-            getCategories(),
-            getCollections(),
-            getBrands(),
-            getProperties(),
-            getProductDiscounts(),
-        ]);
+    const [
+        categories,
+        // collections,
+        brands,
+        properties,
+        // discounts,
+        // countries = [],
+    ] = await Promise.all([
+        getCategories(),
+        // getCollections(),
+        getBrands(),
+        getProperties(),
+        // getProductDiscounts(),
+        // getCountries(),
+    ]);
 
     return (
         <main>
@@ -34,9 +43,10 @@ export default async function Page() {
             <CreateForm
                 categories={categories || []}
                 brands={brands || []}
-                collections={collections || []}
+                // collections={collections || []}
                 properties={properties || []}
-                discounts={discounts || []}
+                // discounts={discounts || []}
+                // countries={countries || []}
             />
         </main>
     );

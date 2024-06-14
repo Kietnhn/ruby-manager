@@ -26,6 +26,7 @@ import bcrypt from "bcrypt";
 import { sendResetPasswordEmail, sendVerificationEmail } from "../mail";
 import { generateResetPasswordToken } from "./reset-password";
 import { isUserAdult } from "../utils";
+import { IBasicUser } from "../definitions/user";
 
 // auth
 export async function authenticate(
@@ -131,6 +132,7 @@ export async function register(prevState: FormData, formData: FormData) {
         await prisma.user.create({
             data: {
                 email,
+                name: firstName + " " + lastName,
                 password: hashedPassword,
                 firstName: firstName,
                 lastName: lastName,
@@ -272,8 +274,8 @@ export async function getUserByEmail(
                 email: true,
                 emailVerified: true,
                 employee: true,
-                favoriteProduct: true,
-                favoriteProductIds: true,
+                favoriteVariation: true,
+                favoriteVariationIds: true,
                 firstName: true,
                 gender: true,
                 id: true,
@@ -286,6 +288,13 @@ export async function getUserByEmail(
                 phoneVerified: true,
                 score: true,
                 updatedAt: true,
+                accounts: true,
+                discountIds: true,
+                discounts: true,
+                notificationsRecipient: true,
+                notificationsSent: true,
+                reviews: true,
+                sessions: true,
             },
         });
         return user;
@@ -293,7 +302,7 @@ export async function getUserByEmail(
         throw new Error("Error getting user" + error);
     }
 }
-export async function searchUser(email: string): Promise<UserNoPassword[]> {
+export async function searchUser(email: string): Promise<IBasicUser[]> {
     if (!email) {
         return [];
     }
@@ -308,31 +317,12 @@ export async function searchUser(email: string): Promise<UserNoPassword[]> {
             },
 
             select: {
-                address: true,
-                billingAddress1: true,
-                billingAddress2: true,
-                shippingAddress: true,
-                cart: true,
-                createdAt: true,
-                dateOfBirth: true,
-                description: true,
                 email: true,
-                emailVerified: true,
-                employee: true,
-                favoriteProduct: true,
-                favoriteProductIds: true,
                 firstName: true,
-                gender: true,
                 id: true,
                 image: true,
-                kind: true,
                 lastName: true,
                 name: true,
-                orders: true,
-                phoneNumber: true,
-                phoneVerified: true,
-                score: true,
-                updatedAt: true,
             },
         });
         return user;

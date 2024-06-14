@@ -7,10 +7,22 @@ import { Measurement } from "@prisma/client";
 import Link from "next/link";
 import { PencilIcon } from "@heroicons/react/24/outline";
 import { EditLinkButton } from "@/components/buttons";
+import { renderId } from "@/lib/utils";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 export const columns: ColumnDef<ICategory>[] = [
+    {
+        accessorKey: "id",
+        header: "Id",
+        size: 80,
+        enableSorting: false,
+        cell: (props) => (
+            <Tooltip content={props.getValue() as string}>
+                <p> {renderId(props.getValue() as string)}</p>
+            </Tooltip>
+        ),
+    },
     {
         accessorKey: "code",
         header: "Code",

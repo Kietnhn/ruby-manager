@@ -1,5 +1,6 @@
 import Breadcrumbs from "@/components/breadcrumbs";
 import CreatePageForm from "@/components/forms/create-form-page";
+import Wrapper from "@/components/wrapper";
 import { getPages } from "@/lib/actions/page";
 import React from "react";
 export default async function CreateNewPage() {
@@ -8,21 +9,17 @@ export default async function CreateNewPage() {
     if (!pages) return <p>No pages</p>;
 
     return (
-        <main className="flex flex-col ">
-            <Breadcrumbs
-                breadcrumbs={[
-                    { label: "Pages", href: "/dashboard/pages" },
-                    {
-                        label: "Create new page",
-                        href: "/dashboard/pages/create",
-                        active: true,
-                    },
-                ]}
-                wrapper="mb-4"
-            />
-            <div className="flex-grow">
-                <CreatePageForm pages={pages} />
-            </div>
-        </main>
+        <Wrapper
+            breadcrumbs={[
+                { label: "Pages", href: "/dashboard/pages" },
+                {
+                    label: "Create new page",
+                    href: "/dashboard/pages/create",
+                },
+            ]}
+            navigateButton={null}
+        >
+            <CreatePageForm pages={pages} />
+        </Wrapper>
     );
 }

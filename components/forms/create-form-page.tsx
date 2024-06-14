@@ -86,7 +86,6 @@ const CreatePageForm = ({ pages }: { pages: Page[] }) => {
                 <CardWrapper
                     heading="Create page form"
                     className="flex-1 duration-75"
-                    classNames={{ body: "flex flex-col gap-4" }}
                 >
                     <DefaultInput
                         name="title"
@@ -107,7 +106,7 @@ const CreatePageForm = ({ pages }: { pages: Page[] }) => {
                         />
 
                         <PageEditor
-                            height="min-h-72 max-h-80 overflow-auto"
+                            height="min-h-72"
                             content={body}
                             onChange={(newContent: string) =>
                                 handleContentChange(newContent)

@@ -114,86 +114,67 @@ const customStyles = {
     }),
 };
 const Variants = ({
-    variations,
-    setVariations,
     measurement,
-    productName,
-    categoryName,
-    initialValue,
-}: {
-    initialValue?: Variation[];
-    productName?: string;
-    categoryName?: string;
-    variations: VariationNoImages[];
+}: // variations,
+// setVariations,
+// productName,
+// categoryName,
+// initialValue,
+{
+    // initialValue?: VariationNoImages[];
+    // productName?: string;
+    // categoryName?: string;
+    // variations: VariationNoImages[];
     measurement?: Measurement | null;
-    setVariations: Dispatch<SetStateAction<VariationNoImages[]>>;
+    // setVariations: Dispatch<SetStateAction<VariationNoImages[]>>;
 }) => {
-    const dispatch = useAppDispatch();
-    const { gallery } = useAppSelector((store) => store.product);
-
-    const [selectedColors, setSelectedColors] = useState<string[]>(() => {
-        const variationColors = getUniqueColors(variations);
-        if (variationColors.length > 0) {
-            return variationColors;
-        } else {
-            return [];
-        }
-    });
+    const [selectedColor, setSelectedColor] = useState<string>("");
     const [selectedValues, setSelectedValues] = useState<ISelectColorsData[]>(
         []
     );
     const [selectedSizes, setSelectedSizes] = useState<string[]>(() => {
-        const variationSizes = getUniqueSizes(variations);
-        console.log({ variationSizes });
+        // const variationSizes = getUniqueSizes(variations);
+        // console.log({ variationSizes });
 
-        if (variationSizes.length > 0) {
-            return variationSizes;
-        } else {
-            return [];
-        }
+        // if (variationSizes.length > 0) {
+        //     return variationSizes;
+        // } else {
+        // }
+        return [];
     });
     const options = useMemo(() => selectColorsData(), []);
     //    functions
     const handleChange = (selectedOptions: MultiValue<ISelectColorsData>) => {
-        setSelectedValues(
-            Array.isArray(selectedOptions) ? selectedOptions : []
-        );
+        const newSelectedColor = selectedOptions
+            .map((value) => value.value)
+            .join("/");
+        setSelectedColor(newSelectedColor);
+        // setSelectedValues(
+        //     Array.isArray(selectedOptions) ? selectedOptions : []
+        // );
     };
-    const handleRemoveColor = (Deletecolor: string) => {
-        const newSelectedColors = selectedColors.filter(
-            (selectedColor) => selectedColor !== Deletecolor
-        );
-        const newGallery = gallery.filter((item) =>
-            newSelectedColors.includes(item.color)
-        );
-        dispatch(setGallery(newGallery));
 
-        setSelectedColors(newSelectedColors);
-    };
-    const handleAddColor = () => {
-        if (selectedValues.length === 0) return;
-        const newSelectedColor = selectedValues.map((value) => value.value);
-        const isInValidColorNames = newSelectedColor.find(
-            (color) => colors[color as keyof typeof colors] === undefined
-        );
+    // const handleAddColor = () => {
+    //     if (selectedValues.length === 0) return;
+    //     const newSelectedColor = selectedValues.map((value) => value.value);
+    //     const isInValidColorNames = newSelectedColor.find(
+    //         (color) => colors[color as keyof typeof colors] === undefined
+    //     );
 
-        if (isInValidColorNames) {
-            console.log("invalid", isInValidColorNames);
+    //     if (isInValidColorNames) {
+    //         console.log("invalid", isInValidColorNames);
 
-            return;
-        }
-        const newSelectedColors = [
-            ...selectedColors,
-            newSelectedColor.join("/"),
-        ];
-        const newGallery: TGallery = {
-            color: newSelectedColor.join("/"),
-            images: [],
-        };
-        dispatch(addGallery(newGallery));
-        setSelectedColors(newSelectedColors);
-        setSelectedValues([]);
-    };
+    //         return;
+    //     }
+    //     const newSelectedColor = newSelectedColor.join("/")
+    //     const newGallery: TGallery = {
+    //         color: newSelectedColor.join("/"),
+    //         images: [],
+    //     };
+    //     dispatch(addGallery(newGallery));
+    //     setSelectedColor(newSelectedColor);
+    //     setSelectedValues([]);
+    // };
     const handleClearAllSizes = () => {
         setSelectedSizes([]);
     };
@@ -235,79 +216,78 @@ const Variants = ({
     };
 
     //   effects
-    useEffect(() => {
-        if (categoryName) {
-            if (!measurement) {
-                console.log("set no seize");
+    // useEffect(() => {
+    //     if (categoryName) {
+    //         if (!measurement) {
+    //             console.log("set no seize");
 
-                setSelectedSizes(["No size"]);
-            } else {
-                if (selectedSizes.includes("No size")) {
-                    console.log("rest sizes");
+    //             setSelectedSizes(["No size"]);
+    //         } else {
+    //             if (selectedSizes.includes("No size")) {
+    //                 console.log("rest sizes");
 
-                    setSelectedSizes([]);
-                }
-            }
-        }
-    }, [measurement, categoryName]);
+    //                 setSelectedSizes([]);
+    //             }
+    //         }
+    //     }
+    // }, [measurement, categoryName]);
 
-    useEffect(() => {
-        const uniqueColors = getUniqueColors(variations);
-        const uniqueSizes = getUniqueSizes(variations);
+    // useEffect(() => {
+    //     // const uniqueColors = getUniqueColors(variations);
+    //     // const uniqueSizes = getUniqueSizes(variations);
 
-        //    if doesn't have any different (color or size) between variations and states
-        if (
-            !isDifferenceArray(uniqueColors, selectedColors) &&
-            !isDifferenceArray(uniqueSizes, selectedSizes)
-        ) {
-            console.log("doesn't have any different ");
-            return;
-        }
-        console.log(" have different ");
+    //     // //    if doesn't have any different (color or size) between variations and states
+    //     // if (
+    //     //     !isDifferenceArray(uniqueColors, selectedColor) &&
+    //     //     !isDifferenceArray(uniqueSizes, selectedSizes)
+    //     // ) {
+    //     //     console.log("doesn't have any different ");
+    //     //     return;
+    //     // }
+    //     // console.log(" have different ");
 
-        const combinations = generateCombinations(
-            selectedColors,
-            selectedSizes
-        );
+    //     const combinations = generateCombinations(
+    //         [selectedColor],
+    //         selectedSizes
+    //     );
+    //     const newData: VariationNoImages[] = combinations.map((item) => ({
+    //         name: productName || "",
+    //         sku: "",
+    //         color: item.color as string,
+    //         description: "",
+    //         id: "",
+    //         stock: 10,
+    //         size: item.size as string,
+    //         productId: "",
+    //     }));
+    //     setVariations(newData);
 
-        if (initialValue) {
-            const newData: VariationNoImages[] = combinations.map((item) => {
-                const matchVariation = initialValue.find(
-                    (v) => v.color === item.color && v.size === item.size
-                );
-                if (!matchVariation) {
-                    console.log("invalid variation");
-                }
-                return {
-                    name: productName || "",
-                    sku: matchVariation?.sku || "",
-                    color: item.color as string,
-                    description: "",
-                    id: matchVariation?.id || "",
-                    stock: matchVariation?.stock || 0,
-                    size: item.size as string,
-                    productId: matchVariation?.productId || "",
-                };
-            });
-            setVariations(newData);
+    //     console.log({ newData });
+    //     // if (initialValue) {
+    //     //     const newData: VariationNoImages[] = combinations.map((item) => {
+    //     //         const matchVariation = initialValue.find(
+    //     //             (v) => v.color === item.color && v.size === item.size
+    //     //         );
+    //     //         if (!matchVariation) {
+    //     //             console.log("invalid variation");
+    //     //         }
+    //     //         return {
+    //     //             name: productName || "",
+    //     //             sku: matchVariation?.sku || "",
+    //     //             color: item.color as string,
+    //     //             description: "",
+    //     //             id: matchVariation?.id || "",
+    //     //             stock: matchVariation?.stock || 10,
+    //     //             size: item.size as string,
+    //     //             productId: matchVariation?.productId || "",
+    //     //         };
+    //     //     });
+    //     //     setVariations(newData);
+    //     //     console.log({ newData });
+    //     // } else {
 
-            console.log({ newData });
-        } else {
-            const newData: VariationNoImages[] = combinations.map((item) => ({
-                name: productName || "",
-                sku: "",
-                color: item.color as string,
-                description: "",
-                id: "",
-                stock: 0,
-                size: item.size as string,
-                productId: "",
-            }));
-            setVariations(newData);
-
-            console.log({ newData });
-        }
-    }, [selectedColors, selectedSizes]);
+    //     // }
+    // }, [selectedColor, selectedSizes]);
     return (
         <>
             <div className=" flex flex-col gap-4">
@@ -321,6 +301,7 @@ const Variants = ({
                                 Colors
                             </label>
                             <ReactSelect
+                            
                                 isMulti
                                 name="colors"
                                 options={options}
@@ -335,7 +316,7 @@ const Variants = ({
                                 }}
                             />
                         </div>
-
+                        {/* 
                         <div className="mt-6">
                             <Button
                                 className="rounded-l-none"
@@ -344,17 +325,17 @@ const Variants = ({
                             >
                                 <PlusIcon className="w-5 h-5" /> Add
                             </Button>
-                        </div>
+                        </div> */}
                     </div>
-                    {selectedColors.length > 0 && (
+                    {/* {selectedColor.length > 0 && (
                         <div className="flex gap-2 flex-wrap">
-                            {selectedColors.map((selectedColors) => (
+                            {selectedColor.map((selectedColor) => (
                                 <Chip
-                                    key={selectedColors}
+                                    key={selectedColor}
                                     // className="mb-4"
                                     startContent={
                                         <div className="flex-center gap-1 ml-1">
-                                            {selectedColors
+                                            {selectedColor
                                                 .split("/")
                                                 .map((color, index) => (
                                                     <span
@@ -370,20 +351,19 @@ const Variants = ({
                                         </div>
                                     }
                                     onClose={() =>
-                                        handleRemoveColor(selectedColors)
+                                        handleRemoveColor(selectedColor)
                                     }
                                 >
-                                    {capitalizeWords(selectedColors)}
+                                    {capitalizeWords(selectedColor)}
                                 </Chip>
                             ))}
                         </div>
-                    )}
+                    )} */}
                 </div>
                 <div className="">
-                    {categoryName ? (
-                        measurement ? (
-                            <div className="w-full relative">
-                                <div className="absolute top-0 right-0 z-10">
+                    {measurement && measurement?.sizes.length > 0 ? (
+                        <div className="w-full relative">
+                            {/* <div className="absolute top-0 right-0 z-10">
                                     {selectedSizes.length ===
                                     measurement.sizes.length ? (
                                         <Tooltip showArrow content="Clear all">
@@ -410,8 +390,8 @@ const Variants = ({
                                             </Button>
                                         </Tooltip>
                                     )}
-                                </div>
-                                <CheckboxGroup
+                                </div> */}
+                            {/* <CheckboxGroup
                                     name="size"
                                     label="Size"
                                     classNames={{
@@ -430,19 +410,8 @@ const Variants = ({
                                             </span>
                                         </CustomCheckbox>
                                     ))}
-                                </CheckboxGroup>
-                            </div>
-                        ) : (
-                            <Input
-                                label="Size"
-                                name="size"
-                                variant="bordered"
-                                labelPlacement="outside"
-                                readOnly
-                                value={"No size"}
-                                className="text-foreground"
-                            />
-                        )
+                                </CheckboxGroup> */}
+                        </div>
                     ) : (
                         <Input
                             label="Size"
@@ -450,20 +419,11 @@ const Variants = ({
                             variant="bordered"
                             labelPlacement="outside"
                             readOnly
-                            value={"Please select category before"}
-                            className="text-red-500"
+                            value={"No size"}
+                            className="text-foreground"
                         />
                     )}
                 </div>
-
-                {/* {variations.length > 0 &&
-                    getVariationHaveImages(variations) && (
-                        <div>
-                            <small className="pointer-events-none text-warning-500">
-                                (*) Change values of option can change gallery
-                            </small>
-                        </div>
-                    )} */}
             </div>
         </>
     );

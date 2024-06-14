@@ -8,7 +8,7 @@ import ModalUploadImages from "./modal-upload-images";
 import { Button } from "@nextui-org/react";
 import GallerySortable from "@/components/gallery-sortable";
 import { Image as TypeImage, Variation } from "@prisma/client";
-import { findVariation, generateToImagesFromUrls } from "@/lib/utils";
+import { generateToImagesFromUrls } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "@/lib/store";
 import { setGallery } from "@/features/product-slice";
 import { TGallery } from "@/lib/definitions";

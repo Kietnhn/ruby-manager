@@ -1,10 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
-import { getEmployeeById } from "./lib/actions/user";
-import { Role } from "@prisma/client";
-import { getEmployee } from "./lib/actions";
-// import { getUserByEmail } from "./lib/actions";
 export const authConfig = {
     pages: {
         signIn: "/auth/login-credentials",

@@ -18,6 +18,28 @@ export async function updateFieldCategory() {
         throw new Error("Couldn't find categories" + error);
     }
 }
+export async function getNonMeasurementCategories() {
+    try {
+        const categories = await prisma.category.findMany({
+            include: {
+                parent: true,
+                measurement: true,
+            },
+            where: {
+                deleted: false,
+                parentId: {
+                    not: null,
+                },
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+        return categories as ICategory[];
+    } catch (error) {
+        throw new Error("Couldn't find categories" + error);
+    }
+}
 export async function getCategories() {
     try {
         const categories = await prisma.category.findMany({

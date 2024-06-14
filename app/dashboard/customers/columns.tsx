@@ -37,7 +37,7 @@ export const columns: ColumnDef<UserCustomer>[] = [
                     <Avatar
                         alt={getPublicIdFromUrl(avatarUrl as string)}
                         src={avatarUrl}
-                        name={props.row.original.firstName}
+                        name={props.row.original.firstName || ""}
                     />
                 </div>
             );

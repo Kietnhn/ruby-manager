@@ -15,6 +15,7 @@ import {
     Page,
     Product,
     Property,
+    SectionSource,
     User,
     UserKind,
     Variation,
@@ -43,33 +44,7 @@ export interface PageContainParent extends Page {
     parent?: Page;
 }
 
-export interface UserNoPassword {
-    address: Address | null;
-    billingAddress1: Address | null;
-    billingAddress2: Address | null;
-    shippingAddress: Address | null;
-    cart: Cart[];
-    createdAt: Date;
-    dateOfBirth: Date | null;
-    description: string | null;
-    email: string | null;
-    emailVerified: Date | null;
-    employee: Employee | null;
-    favoriteProduct: Product[];
-    favoriteProductIds: string[];
-    firstName: string | null;
-    gender: Gender | null;
-    id: string;
-    image: string | null;
-    kind: UserKind;
-    lastName: string | null;
-    name: string | null;
-    orders: Order[];
-    phoneNumber: string | null;
-    phoneVerified: Date | null;
-    score: number;
-    updatedAt: Date;
-}
+export type UserNoPassword = Omit<User, "password">;
 export interface IAdminUser {
     id: string;
     name: string | null;
@@ -112,14 +87,12 @@ export interface DeepProduct extends Product {
     variations: Variation[];
     category: ICategory | null;
     brand: Brand | null;
-    collections: Collection[];
     properties: Property[];
 }
 export interface FullProduct extends Product {
     variations: Variation[];
     category: Category | null;
     brand: Brand | null;
-    collections: Collection[];
     properties: Property[];
 }
 export interface FullEmployee extends Employee {
@@ -176,19 +149,16 @@ export type FlatProduct = {
     description?: string;
     category: string | null;
     categoryCode: string | null;
-    collectionCodes: string[];
-    collections: string[];
+
     brandCode: string | null;
     brand: string | null;
     variationsLength: number;
-    price: number;
-    priceCurrency: string;
-    salePrice: number | null;
+
     gender: string;
-    isAvailable: boolean;
+
     gallery: Gallery[];
-    stock: number;
     properties: Property[];
+    releaseAt: Date | null;
     createdAt: Date;
     updatedAt?: Date;
 };
@@ -217,7 +187,7 @@ export type TypeFilter = {
     value: string | string[];
 };
 export interface IInternalNotification extends Notification {
-    product: Product | null;
+    variation: Variation | null;
 }
 // actions dashboard
 export interface ITopSelling {
@@ -319,3 +289,23 @@ export type LinkType = {
 
 // slice
 export type TGallery = { color: string; images: string[] };
+// section
+export type TSectionState = {
+    title: string;
+    handle: string;
+    description: string;
+};
+export interface TSectionSource extends SectionSource {
+    id: string;
+}
+export interface ISectionCarouselData extends TSectionState {
+    sources: SectionSource[];
+}
+
+export interface ISectionLandscapeData {
+    title: string;
+    subTitle?: string;
+    description?: string;
+    handle: string;
+    source: SectionSource;
+}
